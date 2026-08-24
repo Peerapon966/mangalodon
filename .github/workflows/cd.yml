@@ -1,0 +1,71 @@
+# todo: make cd context aware, deploy BE only when there're changes in scraper/infra dir, and FE when reader dir
+
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        type: environment
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment || 'dev' }}
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' || 
+      github.event.workflow_run.conclusion == 'success'
+    environment:
+      name: ${{ inputs.environment || 'dev' }}
+    steps:
+      - name: Debug
+        run: |
+          echo "github.event.workflow_run.pull_requests.base.ref: ${{ github.event.workflow_run.pull_requests.base.ref }}"
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ./infra
+        run: terraform init -backend-config=init/backend-${{ vars.ENV }}.hcl
+
+      - name: Terraform Workspace
+        working-directory: ./infra
+        run: |
+          terraform workspace select -or-create ${{ vars.TF_WORKSPACE }}
+
+      - name: Terraform Plan
+        working-directory: ./infra
+        run: terraform plan -var-file=tfvars/${{ vars.ENV }}.tfvars -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: ./infra
+        run: terraform apply -auto-approve tfplan
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Deploy Frontend & Init Vault
+        run: ./scripts/deploy.sh -e ${{ vars.ENV }}
