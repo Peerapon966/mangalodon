@@ -1,0 +1,128 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: # for manual test
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      is-app-updated: ${{ steps.app-version.outputs.is_app_updated }}
+      services: ${{ steps.services.outputs.services }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Setup semver Tool
+        run: npm install -g semver
+
+      - name: Set Service Details
+        id: services
+        run: |
+          services="[
+            {
+              \"name\": \"app\",
+              \"path\": \"src\",
+              \"versionFile\": \"Chart.yaml\",
+              \"versionRegex\": \"s/.*-appVersion:\s*([^+]*)\+.*/\1/p\",
+              \"version\": \"$(yq eval '.appVersion' helm-chart/Chart.yaml)\"
+            },
+            {
+              \"name\": \"frontend\",
+              \"path\": \"src/frontend\",
+              \"versionFile\": \"values.yaml\",
+              \"versionRegex\": \"s/.*frontend:[^-]*-\s*tag:\s*([^+]*)\+.*/\1/p\",
+              \"version\" \"$(yq eval '.frontend.image.tag' helm-chart/values.yaml)\"
+            },
+            {
+              \"name\": \"apiservice\",
+              \"path\": \"src/apiservice\",
+              \"versionFile\": \"values.yaml\",
+              \"versionRegex\": \"s/.*apiservice:[^-]*-\s*tag:\s*([^+]*)\+.*/\1/p\",
+              \"version\" \"$(yq eval '.apiservice.image.tag' helm-chart/values.yaml)\"
+            }
+          ]"
+          echo "services=$services" >> $GITHUB_OUTPUT
+
+      - name: Validate Helm Chart Version
+        id: chart-version
+        run: |
+          chmod +x .github/workflows/scripts/validate-helm-version.sh
+          .github/workflows/scripts/validate-helm-version.sh
+
+      - name: Validate App Versions
+        id: app-version
+        env:
+          SERVICES: ${{ steps.services.outputs.services }}
+        run: |
+          chmod +x .github/workflows/scripts/validate-app-version.sh
+          .github/workflows/scripts/validate-app-version.sh
+
+  # app + helm tests
+  test:
+    needs: validate-version
+    if: ${{ needs.validate-version.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+  release-app:
+    needs:
+      - test
+      - validate-version
+    if: ${{ needs.test.result == 'success' && needs.validate-version.outputs.is-app-updated }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          SERVICES: ${{ needs.validate-version.outputs.services }}
+        run: |
+          chmod +x .github/workflows/scripts/release-app.sh
+          .github/workflows/scripts/release-app.sh
+
+  release-helm:
+    needs: release-app
+    if: ${{ needs.release-app.result == 'success' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

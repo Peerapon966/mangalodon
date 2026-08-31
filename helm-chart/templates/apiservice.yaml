@@ -52,7 +52,7 @@ spec:
                 - ALL
             privileged: false
             readOnlyRootFilesystem: true
-          image: {{ .Values.images.repository }}/{{ .Values.apiservice.name }}:{{ .Values.apiservice.imageTag | default .Chart.AppVersion }}
+          image: {{ .Values.apiservice.image.repository | default .Values.images.repository }}:{{ .Values.apiservice.image.tag }}
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
