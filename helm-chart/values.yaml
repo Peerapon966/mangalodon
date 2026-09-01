@@ -33,7 +33,7 @@ frontend:
 apiservice:
   name: apiservice
   image:
-    repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/apiservice
+    repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/prod/apiservice
     tag: 0.0.1
   resources:
     requests:
@@ -53,7 +53,7 @@ apiservice:
 scrapeservice:
   name: scrapeservice
   image:
-    repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/scrapeservice
+    repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/prod/scrapeservice
     tag: 0.0.1
   resources:
     requests:

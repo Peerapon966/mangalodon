@@ -27,6 +27,6 @@ variable "project" {
 }
 
 variable "services" {
-  description = "List of services that require image build"
-  type        = list(string)
+  description = "Map of services and version tags that require image build"
+  type        = map(string)
 }
