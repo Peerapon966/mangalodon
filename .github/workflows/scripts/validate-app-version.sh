@@ -2,7 +2,12 @@
 
 set -euxo pipefail
 
-prev_tag=$(git tag --sort version:refname | tail -n 2 | head -n 1)
+# prev_tag should be empty when there's only 1 tag (first release)
+prev_tag=""
+if [[ $(git tag --sort version:refname | tail -n 2 | wc -l) == 2 ]]; then
+  prev_tag=$(git tag --sort version:refname | tail -n 2 | head -n 1)
+fi
+
 while read -r item; do
   name=$(jq -r '.name' <<< "$item")
   path=$(jq -r '.path' <<< "$item")
@@ -18,7 +23,7 @@ while read -r item; do
 
   # check if source code in src/<service> dir has any update or not
   is_app_updated=false
-  if [[ $(git diff --name-only $prev_tag $GITHUB_REF $path 2>/dev/null | wc -l) > 0 ]]; then
+  if [[ $prev_tag == "" || $(git diff --name-only $prev_tag $GITHUB_REF $path 2>/dev/null | wc -l) > 0 ]]; then
     is_app_updated=true
   fi
   if [[ "$name" == "app" ]]; then
@@ -27,7 +32,7 @@ while read -r item; do
 
   prev_app_version=$(git diff $prev_tag $GITHUB_REF $versionFile 2>/dev/null | tr -d '\n' | sed -nE "$versionRegex" | tr -d '"' )
   is_app_version_updated=false
-  if [[ $prev_app_version != "" ]]; then
+  if [[ $prev_tag == "" || $prev_app_version != "" ]]; then
     is_app_version_updated=true
   fi
 

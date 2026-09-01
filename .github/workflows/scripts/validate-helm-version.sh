@@ -22,9 +22,14 @@ if [[ "${GITHUB_REF#v}" != "$chart_version" ]]; then
   exit 1
 fi
 
+# prev_tag should be empty when there's only 1 tag (first release)
+prev_tag=""
+if [[ $(git tag --sort version:refname | tail -n 2 | wc -l) == 2 ]]; then
+  prev_tag=$(git tag --sort version:refname | tail -n 2 | head -n 1)
+fi
+
 # semver tool sorts all input versions in asc order
 # pass both new and previous version tags and expect the last row = new tag
-prev_tag=$(git tag --sort version:refname | tail -n 2 | head -n 1)
 if [[ $(semver "$prev_tag" "$GITHUB_REF" | tail -n 1) != "${GITHUB_REF#v}" ]]; then
   echo "Helm chart version is decreasing ($GITHUB_REF < $prev_tag)"
   echo "New release must have chart version increased from the previous releases"

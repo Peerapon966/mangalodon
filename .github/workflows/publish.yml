@@ -4,11 +4,11 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch: # for manual test
 
 jobs:
   validate-version:
     runs-on: ubuntu-latest
+    environment: ${{ contains(github.ref_name, 'rc') && 'staging' || 'prod' }}
     outputs:
       is-app-updated: ${{ steps.app-version.outputs.is_app_updated }}
       services: ${{ steps.services.outputs.services }}
@@ -27,33 +27,10 @@ jobs:
       - name: Set Service Details
         id: services
         run: |
-          services="[
-            {
-              \"name\": \"app\",
-              \"path\": \"src\",
-              \"versionFile\": \"Chart.yaml\",
-              \"versionRegex\": \"s/.*-appVersion:\s*([^+]*)\+.*/\1/p\",
-              \"version\": \"$(yq eval '.appVersion' helm-chart/Chart.yaml)\"
-            },
-            {
-              \"name\": \"frontend\",
-              \"path\": \"src/frontend\",
-              \"versionFile\": \"values.yaml\",
-              \"versionRegex\": \"s/.*frontend:[^-]*-\s*tag:\s*([^+]*)\+.*/\1/p\",
-              \"version\" \"$(yq eval '.frontend.image.tag' helm-chart/values.yaml)\"
-            },
-            {
-              \"name\": \"apiservice\",
-              \"path\": \"src/apiservice\",
-              \"versionFile\": \"values.yaml\",
-              \"versionRegex\": \"s/.*apiservice:[^-]*-\s*tag:\s*([^+]*)\+.*/\1/p\",
-              \"version\" \"$(yq eval '.apiservice.image.tag' helm-chart/values.yaml)\"
-            }
-          ]"
-          echo "services=$services" >> $GITHUB_OUTPUT
+          chmod +x .github/workflows/scripts/set-services.sh
+          .github/workflows/scripts/set-services.sh
 
       - name: Validate Helm Chart Version
-        id: chart-version
         run: |
           chmod +x .github/workflows/scripts/validate-helm-version.sh
           .github/workflows/scripts/validate-helm-version.sh
@@ -66,23 +43,27 @@ jobs:
           chmod +x .github/workflows/scripts/validate-app-version.sh
           .github/workflows/scripts/validate-app-version.sh
 
-  # app + helm tests
+  # todo: add app + helm tests
   test:
     needs: validate-version
     if: ${{ needs.validate-version.result == 'success' }}
     runs-on: ubuntu-latest
+    environment: ${{ contains(github.ref_name, 'rc') && 'staging' || 'prod' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
   release-app:
     needs:
-      - test
       - validate-version
-    if: ${{ needs.test.result == 'success' && needs.validate-version.outputs.is-app-updated }}
+      - test
+    if: |
+      needs.validate-version.outputs.is-app-updated &&
+      needs.test.result == 'success'
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    environment: ${{ contains(github.ref_name, 'rc') && 'staging' || 'prod' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -93,24 +74,46 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-      - name: Build, tag, and push docker image to Amazon ECR
+      - name: Terraform Init
+        working-directory: infra
         env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           SERVICES: ${{ needs.validate-version.outputs.services }}
         run: |
-          chmod +x .github/workflows/scripts/release-app.sh
-          .github/workflows/scripts/release-app.sh
+          TF_VAR_services="{}"
+          while read -r item; do
+            service=$(jq -r '.name' <<< "$item")
+            tag=$(jq -r '.version' <<< "$item")
+
+            if [[ $service == "app" ]]; then
+              continue
+            fi
+
+            TF_VAR_services=$(echo "$TF_VAR_services" | jq --arg service "$service" --arg tag "$tag" '.[$service] = $tag')
+          done < <(jq -c '.[]' <<< "$SERVICES")
+
+          terraform init -backend-config=init/backend-${{ vars.ENV }}.hcl
+          terraform workspace select -or-create ${{ vars.ENV }}
+          terraform plan -out=tfplan -var-file=tfvars/${{ vars.ENV }}.tfvars
+
+      - name: Build, tag, and push docker image to Amazon ECR (Terraform Apply)
+        working-directory: infra
+        run: terraform apply -auto-approve tfplan
 
   release-helm:
-    needs: release-app
-    if: ${{ needs.release-app.result == 'success' }}
+    needs:
+      - test
+      - release-app
+    if: |
+      always() && 
+      needs.test.result == 'success' && 
+      (needs.release-app.result == 'success' || needs.release-app.result == 'skipped')
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    environment: ${{ contains(github.ref_name, 'rc') && 'staging' || 'prod' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
