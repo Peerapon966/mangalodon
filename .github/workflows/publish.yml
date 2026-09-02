@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -111,6 +115,8 @@ jobs:
         env:
           SERVICES: ${{ needs.validate-version.outputs.services }}
         run: |
+          set -xeuo pipefail
+
           TF_VAR_services="{}"
           while read -r item; do
             service=$(jq -r '.name' <<< "$item")
@@ -122,6 +128,8 @@ jobs:
 
             TF_VAR_services=$(echo "$TF_VAR_services" | jq --arg service "$service" --arg tag "$tag" '.[$service] = $tag')
           done < <(jq -c '.[]' <<< "$SERVICES")
+
+          export TF_VAR_services="$TF_VAR_services"
 
           terraform init -backend-config=init/backend-${{ vars.ENV }}.hcl
           terraform workspace select -or-create ${{ vars.ENV }}
