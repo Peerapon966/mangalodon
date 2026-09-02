@@ -5,6 +5,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
 jobs:
   check-tag:
     runs-on: ubuntu-latest
@@ -86,7 +89,7 @@ jobs:
       needs.validate-version.outputs.is-app-updated &&
       needs.test.result == 'success'
     permissions:
-      contents: write
+      id-token: write
     runs-on: ubuntu-latest
     environment: ${{ needs.check-tag.outputs.is_prerelease && 'staging' || 'prod' }}
     steps:
