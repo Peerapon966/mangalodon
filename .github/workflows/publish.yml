@@ -21,7 +21,7 @@ jobs:
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
             echo "Tag is a stable release."
           else
-            echo "Invalid tag '${{ github.ref_name }}'
+            echo "Invalid tag '${{ github.ref_name }}'"
             echo "Tag name must follow semver guildline"
             exit 1
           fi
