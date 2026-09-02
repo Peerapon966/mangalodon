@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euxo pipefail
+set -euo pipefail
 
 services_template='[
   {
@@ -39,4 +39,4 @@ services=$(echo "$services_template" | jq \
   (.[] | select(.name == "apiservice")).version = $api |
   (.[] | select(.name == "scrapeservice")).version = $scr')
 
-echo "services=$services" >> $GITHUB_OUTPUT
+echo "services=$(echo $services | jq -c '.')" >> $GITHUB_OUTPUT
