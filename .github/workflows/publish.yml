@@ -106,6 +106,9 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

@@ -47,8 +47,7 @@ resource "null_resource" "docker_build" {
 
   provisioner "local-exec" {
     command = <<EOF
-aws ecr get-login-password --region ${data.aws_region.current.name} ${local.profile_arg} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com
-docker buildx build --platform linux/amd64 --provenance=false --no-cache -t ${aws_ecr_repository.repo[each.key].repository_url}:${each.value} --build-arg ENV=${var.environment} --push ../src/${each.value}
+docker buildx build --platform linux/amd64 --provenance=false --no-cache -t ${aws_ecr_repository.repo[each.key].repository_url}:${each.value} --build-arg ENV=${var.environment} --push ../src/${each.key}
 EOF
   }
 }
