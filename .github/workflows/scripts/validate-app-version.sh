@@ -23,14 +23,14 @@ while read -r item; do
 
   # check if source code in src/<service> dir has any update or not
   is_app_updated=false
-  if [[ $prev_tag == "" || $(git diff --name-only $prev_tag $GITHUB_REF $path 2>/dev/null | wc -l) > 0 ]]; then
+  if [[ $prev_tag == "" || $(git diff --name-only $prev_tag $GITHUB_REF_NAME $path 2>/dev/null | wc -l) > 0 ]]; then
     is_app_updated=true
   fi
   if [[ "$name" == "app" ]]; then
     echo "is_app_updated=$is_app_updated" >> $GITHUB_OUTPUT
   fi
 
-  prev_app_version=$(git diff $prev_tag $GITHUB_REF $versionFile 2>/dev/null | tr -d '\n' | sed -nE "$versionRegex" | tr -d '"' )
+  prev_app_version=$(git diff $prev_tag $GITHUB_REF_NAME $versionFile 2>/dev/null | tr -d '\n' | sed -nE "$versionRegex" | tr -d '"' )
   is_app_version_updated=false
   if [[ $prev_tag == "" || $prev_app_version != "" ]]; then
     is_app_version_updated=true

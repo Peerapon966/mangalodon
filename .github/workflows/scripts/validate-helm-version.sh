@@ -3,7 +3,7 @@
 set -euxo pipefail
 
 versions="{
-  \"tag_version\": \"$GITHUB_REF\",
+  \"tag_version\": \"$GITHUB_REF_NAME\",
   \"chart_version\": \"$(yq eval '.version' helm-chart/Chart.yaml)\"
 }"
 
@@ -17,8 +17,8 @@ while read -r key value; do
   export $key=$value
 done < <(echo "$versions" | jq -r 'to_entries[] | "\(.key)\t\(.value)"')
 
-if [[ "${GITHUB_REF#v}" != "$chart_version" ]]; then
-  echo "Version specified in tag (${GITHUB_REF#v}) doesn't match chart version in Chart.yaml ($chart_version)"
+if [[ "${GITHUB_REF_NAME#v}" != "$chart_version" ]]; then
+  echo "Version specified in tag (${GITHUB_REF_NAME#v}) doesn't match chart version in Chart.yaml ($chart_version)"
   exit 1
 fi
 
@@ -30,8 +30,8 @@ fi
 
 # semver tool sorts all input versions in asc order
 # pass both new and previous version tags and expect the last row = new tag
-if [[ $(semver "$prev_tag" "$GITHUB_REF" | tail -n 1) != "${GITHUB_REF#v}" ]]; then
-  echo "Helm chart version is decreasing ($GITHUB_REF < $prev_tag)"
+if [[ $(semver "$prev_tag" "$GITHUB_REF_NAME" | tail -n 1) != "${GITHUB_REF_NAME#v}" ]]; then
+  echo "Helm chart version is decreasing ($GITHUB_REF_NAME < $prev_tag)"
   echo "New release must have chart version increased from the previous releases"
   exit 1
 fi
