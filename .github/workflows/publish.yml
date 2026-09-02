@@ -97,6 +97,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get ID Token (Debug)
+        run: |
+          ID_TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://demo" | jq -r .value)
+          echo $ID_TOKEN | base64
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
