@@ -6,9 +6,31 @@ on:
       - "v*"
 
 jobs:
-  validate-version:
+  check-tag:
     runs-on: ubuntu-latest
-    environment: ${{ contains(github.ref_name, 'rc') && 'staging' || 'prod' }}
+    outputs:
+      is_prerelease: ${{ steps.check_release.outputs.is_prerelease }}
+    steps:
+      - name: Check if tag is a pre-release
+        id: check_release
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "Tag is a pre-release."
+          elif [[ "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-.+ ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "Tag is a stable release."
+          else
+            echo "Invalid tag '${{ github.ref_name }}'
+            echo "Tag name must follow semver guildline"
+            exit 1
+          fi
+
+  validate-version:
+    needs: check-tag
+    if: ${{ needs.check-tag.result == 'success' }}
+    runs-on: ubuntu-latest
+    environment: ${{ needs.check-tag.outputs.is_prerelease && 'staging' || 'prod' }}
     outputs:
       is-app-updated: ${{ steps.app-version.outputs.is_app_updated }}
       services: ${{ steps.services.outputs.services }}
@@ -45,16 +67,19 @@ jobs:
 
   # todo: add app + helm tests
   test:
-    needs: validate-version
+    needs:
+      - check-tag
+      - validate-version
     if: ${{ needs.validate-version.result == 'success' }}
     runs-on: ubuntu-latest
-    environment: ${{ contains(github.ref_name, 'rc') && 'staging' || 'prod' }}
+    environment: ${{ needs.check-tag.outputs.is_prerelease && 'staging' || 'prod' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
   release-app:
     needs:
+      - check-tag
       - validate-version
       - test
     if: |
@@ -63,7 +88,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    environment: ${{ contains(github.ref_name, 'rc') && 'staging' || 'prod' }}
+    environment: ${{ needs.check-tag.outputs.is_prerelease && 'staging' || 'prod' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,6 +129,7 @@ jobs:
 
   release-helm:
     needs:
+      - check-tag
       - test
       - release-app
     if: |
@@ -113,7 +139,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    environment: ${{ contains(github.ref_name, 'rc') && 'staging' || 'prod' }}
+    environment: ${{ needs.check-tag.outputs.is_prerelease && 'staging' || 'prod' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
