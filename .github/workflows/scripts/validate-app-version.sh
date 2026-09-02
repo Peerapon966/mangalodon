@@ -36,7 +36,7 @@ while read -r item; do
   fi
 
   is_app_version_updated=false
-  if [[ $prev_app_version != "" ]]; then
+  if [[ $prev_tag == "" || $prev_app_version != "" ]]; then
     is_app_version_updated=true
   fi
 
