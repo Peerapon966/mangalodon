@@ -30,9 +30,13 @@ while read -r item; do
     echo "is_app_updated=$is_app_updated" >> $GITHUB_OUTPUT
   fi
 
-  prev_app_version=$(git diff $prev_tag $GITHUB_REF_NAME $versionFile 2>/dev/null | tr -d '\n' | sed -nE "$versionRegex" | tr -d '"' )
+  prev_app_version=""
+  if [[ $prev_tag != "" ]]; then
+    prev_app_version=$(git diff $prev_tag $GITHUB_REF_NAME $versionFile 2>/dev/null | tr -d '\n' | sed -nE "$versionRegex" | tr -d '"' )
+  fi
+
   is_app_version_updated=false
-  if [[ $prev_tag == "" || $prev_app_version != "" ]]; then
+  if [[ $prev_app_version != "" ]]; then
     is_app_version_updated=true
   fi
 
