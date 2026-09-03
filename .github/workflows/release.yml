@@ -27,10 +27,10 @@ jobs:
         id: check_release
         run: |
           version=$(yq eval '.version' charts/mangalodon/Chart.yaml)
-          if [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
             echo "Release is a stable release."
-          elif [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-.+ ]]; then
+          elif [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-.+ ]]; then
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
             echo "Release is a pre-release."
           else
