@@ -16,9 +16,9 @@ deploy:
   helm:
     releases:
       - name: mangalodon
-        chartPath: helm-chart
+        chartPath: charts/mangalodon
         valuesFiles:
-          - helm-chart/values.yaml
+          - charts/mangalodon/values.yaml
         setValueTemplates:
           frontend.imageTag: "{{.DIGEST_HEX_741448960615_dkr_ecr_ap_southeast_1_amazonaws_com_mangalodon_frontend}}"
           apiservice.imageTag: "{{.DIGEST_HEX_741448960615_dkr_ecr_ap_southeast_1_amazonaws_com_mangalodon_apiservice}}"

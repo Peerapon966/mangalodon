@@ -30,10 +30,10 @@ services_template='[
 ]'
 
 services=$(echo "$services_template" | jq \
-  --arg app "$(yq eval '.appVersion' helm-chart/Chart.yaml)" \
-  --arg fe "$(yq eval '.frontend.image.tag' helm-chart/values.yaml)" \
-  --arg api "$(yq eval '.apiservice.image.tag' helm-chart/values.yaml)" \
-  --arg scr "$(yq eval '.scrapeservice.image.tag' helm-chart/values.yaml)" \
+  --arg app "$(yq eval '.appVersion' charts/mangalodon/Chart.yaml)" \
+  --arg fe "$(yq eval '.frontend.image.tag' charts/mangalodon/values.yaml)" \
+  --arg api "$(yq eval '.apiservice.image.tag' charts/mangalodon/values.yaml)" \
+  --arg scr "$(yq eval '.scrapeservice.image.tag' charts/mangalodon/values.yaml)" \
   '(.[] | select(.name == "app")).version = $app |
   (.[] | select(.name == "frontend")).version = $fe |
   (.[] | select(.name == "apiservice")).version = $api |

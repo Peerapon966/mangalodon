@@ -33,6 +33,6 @@ To build and deploy the microservices into Kubernetes:
    ```
 2. Deploy the Helm chart to your cluster:
    ```bash
-   cd helm-chart
+   cd charts/mangalodon
    helm upgrade --install mangalodon .
    ```

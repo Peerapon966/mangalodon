@@ -3,7 +3,7 @@
 set -eux
 
 current_version=$(git tag --sort version:refname | tail -n 1)
-new_version=$(yq eval '.version' helm-chart/Chart.yaml)
+new_version=$(yq eval '.version' charts/mangalodon/Chart.yaml)
 
 if [[ $(semver $new_version | wc -l) == 0 ]]; then
   echo "Invalid Helm chart version: $new_version"
