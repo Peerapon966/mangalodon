@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - main
-    paths:
-      - charts/mangalodon/Chart.yaml
+    # paths:
+    #   - charts/mangalodon/Chart.yaml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
@@ -20,6 +20,9 @@ jobs:
     outputs:
       is_prerelease: ${{ steps.check_release.outputs.is_prerelease }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Check if release is a pre-release or stable release
         id: check_release
         run: |
