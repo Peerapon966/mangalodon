@@ -1,9 +1,11 @@
-name: publish
+name: release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+    paths:
+      - charts/mangalodon/Chart.yaml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
@@ -13,33 +15,34 @@ permissions:
   contents: read
 
 jobs:
-  check-tag:
+  check-release-type:
     runs-on: ubuntu-latest
     outputs:
       is_prerelease: ${{ steps.check_release.outputs.is_prerelease }}
     steps:
-      - name: Check if tag is a pre-release
+      - name: Check if release is a pre-release or stable release
         id: check_release
         run: |
-          if [[ "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          version=$(yq eval '.version' charts/mangalodon/Chart.yaml)
+          if [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
-            echo "Tag is a stable release."
-          elif [[ "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-.+ ]]; then
+            echo "Release is a stable release."
+          elif [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-.+ ]]; then
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
-            echo "Tag is a pre-release."
+            echo "Release is a pre-release."
           else
-            echo "Invalid tag '${{ github.ref_name }}'"
-            echo "Tag name must follow semver guildline"
+            echo "Invalid version '$version'"
+            echo "Version name must follow semver guildline"
             exit 1
           fi
 
   validate-version:
-    needs: check-tag
-    if: ${{ needs.check-tag.result == 'success' }}
+    needs: check-release-type
+    if: ${{ needs.check-release-type.result == 'success' }}
     runs-on: ubuntu-latest
-    environment: ${{ needs.check-tag.outputs.is_prerelease && 'staging' || 'prod' }}
+    environment: ${{ needs.check-release-type.outputs.is_prerelease && 'staging' || 'prod' }}
     outputs:
-      is-app-updated: ${{ steps.app-version.outputs.is_app_updated }}
+      is-code-updated: ${{ steps.app-version.outputs.is_code_updated }}
       services: ${{ steps.services.outputs.services }}
     steps:
       - name: Checkout
@@ -75,28 +78,28 @@ jobs:
   # todo: add app + helm tests
   test:
     needs:
-      - check-tag
+      - check-release-type
       - validate-version
     if: ${{ needs.validate-version.result == 'success' }}
     runs-on: ubuntu-latest
-    environment: ${{ needs.check-tag.outputs.is_prerelease && 'staging' || 'prod' }}
+    environment: ${{ needs.check-release-type.outputs.is_prerelease && 'staging' || 'prod' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
   release-app:
     needs:
-      - check-tag
+      - check-release-type
       - validate-version
       - test
     if: |
-      needs.validate-version.outputs.is-app-updated &&
+      needs.validate-version.outputs.is-code-updated &&
       needs.test.result == 'success'
     permissions:
       contents: read
       id-token: write
     runs-on: ubuntu-latest
-    environment: ${{ needs.check-tag.outputs.is_prerelease && 'staging' || 'prod' }}
+    environment: ${{ needs.check-release-type.outputs.is_prerelease && 'staging' || 'prod' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -106,7 +109,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
-      
+
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
@@ -144,7 +147,7 @@ jobs:
 
   release-helm:
     needs:
-      - check-tag
+      - check-release-type
       - test
       - release-app
     if: |
@@ -154,7 +157,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    environment: ${{ needs.check-tag.outputs.is_prerelease && 'staging' || 'prod' }}
+    environment: ${{ needs.check-release-type.outputs.is_prerelease && 'staging' || 'prod' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -171,7 +174,7 @@ jobs:
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
-        with:
-          charts_dir: .
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          CR_RELEASE_NAME_TEMPLATE: "{{ .Version }}"
+          CR_SKIP_EXISTING: true

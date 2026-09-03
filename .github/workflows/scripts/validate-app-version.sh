@@ -1,13 +1,8 @@
 #!/bin/bash
 
-set -euxo pipefail
+set -eux
 
-# prev_tag should be empty when there's only 1 tag (first release)
-prev_tag=""
-if [[ $(git tag --sort version:refname | tail -n 2 | wc -l) == 2 ]]; then
-  prev_tag=$(git tag --sort version:refname | tail -n 2 | head -n 1)
-fi
-
+current_version=$(git tag --sort version:refname | tail -n 1)
 while read -r item; do
   name=$(jq -r '.name' <<< "$item")
   path=$(jq -r '.path' <<< "$item")
@@ -22,34 +17,31 @@ while read -r item; do
   fi
 
   # check if source code in src/<service> dir has any update or not
-  is_app_updated=false
-  if [[ $prev_tag == "" || $(git diff --name-only $prev_tag $GITHUB_REF_NAME $path 2>/dev/null | wc -l) > 0 ]]; then
-    is_app_updated=true
+  is_code_updated=false
+  if [[ $current_version == "" || $(git diff --name-only $current_version HEAD $path 2>/dev/null | wc -l) > 0 ]]; then
+    is_code_updated=true
   fi
   if [[ "$name" == "app" ]]; then
-    echo "is_app_updated=$is_app_updated" >> $GITHUB_OUTPUT
+    echo "is_code_updated=$is_code_updated" >> $GITHUB_OUTPUT
   fi
 
-  prev_app_version=""
-  if [[ $prev_tag != "" ]]; then
-    prev_app_version=$(git diff $prev_tag $GITHUB_REF_NAME $versionFile 2>/dev/null | tr -d '\n' | sed -nE "$versionRegex" | tr -d '"' )
-  fi
-
+  # check if appVersion in Chart.yaml and image tag (service version) in values.yaml are updated or not
+  prev_app_version=$(git diff $current_version HEAD $versionFile 2>/dev/null | tr -d '\n' | sed -nE "$versionRegex" | tr -d '"' )
   is_app_version_updated=false
-  if [[ $prev_tag == "" || $prev_app_version != "" ]]; then
+  if [[ $current_version == "" || $prev_app_version != "" ]]; then
     is_app_version_updated=true
   fi
 
   # validate 2 cases
   # 1. if src/<service> has updates => version value must also be updated & prev version < new version
   # 2. if src/<service> has no updates => version value must not be updated
-  if [[ "$is_app_updated" == "true" && "$is_app_version_updated" == "false" ]]; then
+  if [[ "$is_code_updated" == "true" && "$is_app_version_updated" == "false" ]]; then
     echo "Detected source code updates in $path but version in $versionFile is not bumping up"
     echo "Increase version in $versionFile and try again"
     exit 1
   fi
 
-  if [[ "$is_app_updated" == "true" && "$is_app_version_updated" == "true" ]]; then
+  if [[ "$is_code_updated" == "true" && "$is_app_version_updated" == "true" ]]; then
     # semver tool sorts all input versions in asc order
     # pass both new and previous versions and expect the last row = new version
     if [[ $(semver "$prev_app_version" "$version" | tail -n 1) != "${version#v}" ]]; then
@@ -59,7 +51,7 @@ while read -r item; do
     fi
   fi
 
-  if [[ "$is_app_updated" == "false" && "$is_app_version_updated" == "true" ]]; then
+  if [[ "$is_code_updated" == "false" && "$is_app_version_updated" == "true" ]]; then
     echo "$name version in $versionFile has changed without any source code updates in $path"
     echo "The workflow expects version to stay unchanged when no updates in source code present"
     exit 1
