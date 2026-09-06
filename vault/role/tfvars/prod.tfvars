@@ -7,7 +7,7 @@ services = {
   frontend = ["kv/data/mangalodon/prod/frontend/*"]
   api      = ["kv/data/mangalodon/prod/api/*", "kv/data/mangalodon/prod/postgres/*"]
   scraper  = ["kv/data/mangalodon/prod/scraper/*", "kv/data/mangalodon/prod/api/*", "kv/data/mangalodon/prod/postgres/*"]
-  postgres = []
+  postgres = ["kv/data/mangalodon/staging/postgres/*"]
   rabbitmq = []
   cronjob  = []
 }

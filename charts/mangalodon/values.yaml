@@ -5,10 +5,9 @@ serviceAccount:
   annotations: {}
 
 imagePullSecrets:
-  - name: ecr-registry-secret
 
 images:
-  repository: ""
+  repository:
 
 frontend:
   name: frontend
@@ -33,7 +32,7 @@ frontend:
 apiservice:
   name: apiservice
   image:
-    repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/prod/apiservice
+    repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/apiservice
     tag: 0.0.1
   resources:
     requests:
@@ -53,7 +52,7 @@ apiservice:
 scrapeservice:
   name: scrapeservice
   image:
-    repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/prod/scrapeservice
+    repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/scrapeservice
     tag: 0.0.1
   resources:
     requests:
@@ -72,7 +71,7 @@ ingress:
 postgres:
   name: postgres
   username: app
-  vaultSecretPath: kv/mangalodon/dev/postgres
+  vaultSecretPath: kv/mangalodon/prod/postgres/login-secret
   schema: public
   version: 18
   instanceCount: 3
