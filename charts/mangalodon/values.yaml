@@ -13,7 +13,7 @@ frontend:
   name: frontend
   image:
     repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/frontend
-    tag: 0.0.1
+    tag: 0.0.2-alpha
   resources:
     requests:
       cpu: 100m

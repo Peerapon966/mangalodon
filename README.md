@@ -27,7 +27,7 @@ To build and deploy the microservices into Kubernetes:
 
 1. Push images using Terraform:
    ```bash
-   cd terraform
+   cd infra
    terraform init
    terraform apply
    ```

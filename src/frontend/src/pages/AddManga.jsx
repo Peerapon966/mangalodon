@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AddManga = () => {
@@ -9,7 +9,23 @@ const AddManga = () => {
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [availableScrapers, setAvailableScrapers] = useState([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchScrapers = async () => {
+      try {
+        const res = await fetch('/api/v1/scrapers');
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableScrapers(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch scrapers', err);
+      }
+    };
+    fetchScrapers();
+  }, []);
 
   const handleAddSource = () => {
     setSources([...sources, { scraperId: '', sourceMangaId: '', priority: sources.length + 1 }]);
@@ -105,14 +121,19 @@ const AddManga = () => {
             
             <div className="source-fields">
               <div className="form-group">
-                <label>Scraper ID</label>
-                <input 
-                  type="number" 
-                  value={source.scraperId} 
-                  onChange={(e) => handleSourceChange(index, 'scraperId', e.target.value)} 
-                  placeholder="e.g. 1"
-                  required 
-                />
+                <label>Scraper</label>
+                <select
+                  value={source.scraperId}
+                  onChange={(e) => handleSourceChange(index, 'scraperId', e.target.value)}
+                  required
+                >
+                  <option value="">Select a scraper...</option>
+                  {availableScrapers.map(scraper => (
+                    <option key={scraper.id} value={scraper.id}>
+                      {scraper.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group">
