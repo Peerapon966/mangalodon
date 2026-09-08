@@ -79,6 +79,7 @@ body {
 .main-content {
   flex: 1;
   display: flex;
+  flex-direction: column;
   padding: 2rem;
   max-width: 1600px; /* Increased for 3 columns */
   margin: 0 auto;
@@ -506,12 +507,18 @@ body {
   .checkbox-group {
     margin-top: 0.5rem;
   }
+
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
 }
 
 /* Add Manga Form Styles */
 .add-manga-container {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 4rem auto;
   background: rgba(255, 255, 255, 0.05);
   padding: 2rem;
   border-radius: 12px;
@@ -543,6 +550,24 @@ body {
   margin-bottom: 0.5rem;
   color: var(--text-color);
   font-weight: 500;
+}
+
+.form-row {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-row .form-group {
+  margin-bottom: 0;
+}
+
+.grid-2 {
+  grid-template-columns: 2fr 1fr;
+}
+
+.grid-3 {
+  grid-template-columns: 1.5fr 2fr 1fr;
 }
 
 .form-group input, .form-group select {
@@ -620,6 +645,25 @@ body {
   cursor: pointer;
   font-weight: 600;
   transition: background 0.2s;
+}
+
+.btn-add-source {
+  width: 100%;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.btn-add-source:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: white;
 }
 
 .btn-secondary:hover, .btn-cancel:hover {

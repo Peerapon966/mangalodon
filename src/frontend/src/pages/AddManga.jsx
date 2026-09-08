@@ -84,27 +84,29 @@ const AddManga = () => {
       {error && <div className="error-message">{error}</div>}
       
       <form onSubmit={handleSubmit} className="add-manga-form">
-        <div className="form-group">
-          <label>Title</label>
-          <input 
-            type="text" 
-            value={title} 
-            onChange={(e) => setTitle(e.target.value)} 
-            placeholder="e.g. One Punch Man"
-            required 
-          />
-        </div>
+        <div className="form-row grid-2">
+          <div className="form-group">
+            <label>Title</label>
+            <input 
+              type="text" 
+              value={title} 
+              onChange={(e) => setTitle(e.target.value)} 
+              placeholder="e.g. One Punch Man"
+              required 
+            />
+          </div>
 
-        <div className="form-group">
-          <label>First Chapter</label>
-          <input 
-            type="number" 
-            step="0.1"
-            value={firstChapter} 
-            onChange={(e) => setFirstChapter(e.target.value)} 
-            placeholder="e.g. 1"
-            required 
-          />
+          <div className="form-group">
+            <label>First Chapter</label>
+            <input 
+              type="number" 
+              step="0.1"
+              value={firstChapter} 
+              onChange={(e) => setFirstChapter(e.target.value)} 
+              placeholder="e.g. 1"
+              required 
+            />
+          </div>
         </div>
 
         <h3>Sources</h3>
@@ -119,7 +121,7 @@ const AddManga = () => {
               )}
             </div>
             
-            <div className="source-fields">
+            <div className="form-row grid-3">
               <div className="form-group">
                 <label>Scraper</label>
                 <select
@@ -161,7 +163,7 @@ const AddManga = () => {
           </div>
         ))}
 
-        <button type="button" className="btn-secondary" onClick={handleAddSource}>
+        <button type="button" className="btn-add-source" onClick={handleAddSource}>
           + Add Another Source
         </button>
 
