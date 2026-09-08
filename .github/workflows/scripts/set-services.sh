@@ -13,19 +13,19 @@ services_template='[
     "name": "frontend",
     "path": "src/frontend",
     "versionFile": "charts/mangalodon/values.yaml",
-    "versionRegex": "s/.*frontend:[^-]*-\\s*tag:\\s*([^+]*)\\+.*/\\1/p"
+    "versionRegex": "s/.*frontend:.*?tag:\s*([^+]*)\+.*/\1/p"
   },
   {
     "name": "apiservice",
     "path": "src/apiservice",
     "versionFile": "charts/mangalodon/values.yaml",
-    "versionRegex": "s/.*apiservice:[^-]*-\\s*tag:\\s*([^+]*)\\+.*/\\1/p"
+    "versionRegex": "s/.*apiservice:.*?tag:\s*([^+]*)\+.*/\1/p"
   },
   {
     "name": "scrapeservice",
     "path": "src/scrapeservice",
     "versionFile": "charts/mangalodon/values.yaml",
-    "versionRegex": "s/.*scrapeservice:[^-]*-\\s*tag:\\s*([^+]*)\\+.*/\\1/p"
+    "versionRegex": "s/.*scrapeservice:.*?tag:\s*([^+]*)\+.*/\1/p"
   }
 ]'
 
