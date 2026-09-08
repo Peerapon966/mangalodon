@@ -6,25 +6,25 @@ services_template='[
   {
     "name": "app",
     "path": "src",
-    "versionFile": "Chart.yaml",
+    "versionFile": "charts/mangalodon/Chart.yaml",
     "versionRegex": "s/.*-appVersion:\\s*([^+]*)\\+.*/\\1/p"
   },
   {
     "name": "frontend",
     "path": "src/frontend",
-    "versionFile": "values.yaml",
+    "versionFile": "charts/mangalodon/values.yaml",
     "versionRegex": "s/.*frontend:[^-]*-\\s*tag:\\s*([^+]*)\\+.*/\\1/p"
   },
   {
     "name": "apiservice",
     "path": "src/apiservice",
-    "versionFile": "values.yaml",
+    "versionFile": "charts/mangalodon/values.yaml",
     "versionRegex": "s/.*apiservice:[^-]*-\\s*tag:\\s*([^+]*)\\+.*/\\1/p"
   },
   {
     "name": "scrapeservice",
     "path": "src/scrapeservice",
-    "versionFile": "values.yaml",
+    "versionFile": "charts/mangalodon/values.yaml",
     "versionRegex": "s/.*scrapeservice:[^-]*-\\s*tag:\\s*([^+]*)\\+.*/\\1/p"
   }
 ]'
