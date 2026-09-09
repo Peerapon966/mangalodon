@@ -17,22 +17,8 @@ The core task is really simple: scraping images from manga sites. But instead of
 
 ## Running Locally
 
-To start the supporting infrastructure (database, message broker, etc.):
+Run the deploy_dev script to deploy app to local Kubernetes cluster
 
 ```bash
-skaffold dev
+bash scripts/deploy_dev.sh
 ```
-
-To build and deploy the microservices into Kubernetes:
-
-1. Push images using Terraform:
-   ```bash
-   cd infra
-   terraform init
-   terraform apply
-   ```
-2. Deploy the Helm chart to your cluster:
-   ```bash
-   cd charts/mangalodon
-   helm upgrade --install mangalodon .
-   ```

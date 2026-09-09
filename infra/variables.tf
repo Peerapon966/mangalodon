@@ -1,9 +1,3 @@
-variable "aws_region" {
-  description = "The AWS region to deploy to"
-  type        = string
-  default     = "ap-southeast-1"
-}
-
 variable "environment" {
   description = "The logical environment name (e.g., dev, prod)"
   type        = string
@@ -12,6 +6,12 @@ variable "environment" {
     condition     = contains(["dev", "staging", "prod"], var.environment)
     error_message = "The environment variable must be strictly one of 'dev', 'staging', or 'prod'."
   }
+}
+
+variable "aws_region" {
+  description = "The AWS region to deploy to"
+  type        = string
+  default     = "ap-southeast-1"
 }
 
 variable "aws_profile" {
@@ -29,4 +29,10 @@ variable "project" {
 variable "services" {
   description = "Map of services and version tags that require image build"
   type        = map(string)
+}
+
+variable "is_manual_deploy" {
+  description = "Whether the deployment is triggered manually by local script, etc. or by automated CI/CD pipeline"
+  type        = bool
+  default     = false
 }
