@@ -67,21 +67,21 @@ jobs:
       - name: Set Service Details
         id: services
         run: |
-          chmod +x .github/workflows/scripts/set-services.sh
-          .github/workflows/scripts/set-services.sh
+          chmod +x .github/workflows/scripts/set_services.sh
+          .github/workflows/scripts/set_services.sh
 
       - name: Validate Helm Chart Version
         run: |
-          chmod +x .github/workflows/scripts/validate-helm-version.sh
-          .github/workflows/scripts/validate-helm-version.sh
+          chmod +x .github/workflows/scripts/validate_helm_version.sh
+          .github/workflows/scripts/validate_helm_version.sh
 
       - name: Validate App Versions
         id: app-version
         env:
           SERVICES: ${{ steps.services.outputs.services }}
         run: |
-          chmod +x .github/workflows/scripts/validate-app-version.sh
-          .github/workflows/scripts/validate-app-version.sh
+          chmod +x .github/workflows/scripts/validate_app_version.sh
+          .github/workflows/scripts/validate_app_version.sh
 
   # todo: add app + helm tests
   test:

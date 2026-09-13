@@ -250,9 +250,9 @@ const AddManga = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.5rem', marginTop: '1.5rem' }}>
+        <div className="sources-header-container">
           <h3 style={{ margin: 0 }}>Sources</h3>
-          <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>*Drag to reorder priority (Top is highest)</span>
+          <span className="sources-hint">*Drag to reorder priority (Top is highest)</span>
         </div>
 
         <DndContext 

@@ -1,0 +1,21 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: {{ .Values.rabbitmq.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.rabbitmq.name }}
+spec:
+  replicas: {{ .Values.rabbitmq.replicas }}
+  persistence:
+    storageClassName: {{ .Values.rabbitmq.storage.className }}
+    storage: {{ .Values.rabbitmq.storage.size }}
+  secretBackend:
+    vault:
+      role: {{ .Chart.Name }}-{{ .Values.rabbitmq.name }}-{{ .Values.env }}
+      annotations:
+        {{- include "vault.annotations" . | nindent 8 }}
+        vault.hashicorp.com/role: {{ .Chart.Name }}-{{ .Values.rabbitmq.name }}-{{ .Values.env }}
+      defaultUserPath: {{ .Values.vault.kvEngine.mountPath }}/{{ replace "<env>" .Values.env .Values.rabbitmq.vaultSecretPath.defaultUser }}
+    # TODO: add mTLS by cert-manager

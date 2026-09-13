@@ -1,0 +1,25 @@
+environment   = "prod"
+vault_address = "https://192.168.1.10:8200"
+granularity   = "service"
+
+services = {
+  frontend = {
+    allow_secret_paths = ["kv/data/mangalodon/dev/frontend/*"]
+  }
+  apiservice = {
+    allow_secret_paths = ["kv/data/mangalodon/dev/apiservice/*", "kv/data/mangalodon/dev/postgres/*", "kv/data/mangalodon/dev/rabbitmq/*"]
+  }
+  scrapeservice = {
+    allow_secret_paths = ["kv/data/mangalodon/dev/scrapeservice/*", "kv/data/mangalodon/dev/postgres/*", "kv/data/mangalodon/dev/rabbitmq/*"]
+  }
+  postgres = {
+    allow_secret_paths = ["kv/data/mangalodon/dev/postgres/*"]
+  }
+  rabbitmq = {
+    allow_secret_paths   = ["kv/data/mangalodon/dev/rabbitmq/*"]
+    service_account_name = "rabbitmq-server"
+  }
+  cronjob = {
+    allow_secret_paths = []
+  }
+}
