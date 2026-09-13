@@ -1,15 +1,41 @@
-{{- if .Values.serviceAccount.create }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Values.apiservice.name }}
   namespace: {{ .Release.Namespace }}
-  {{- with .Values.serviceAccount.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+# ---
+# apiVersion: secrets.hashicorp.com/v1beta1
+# kind: VaultAuth
+# metadata:
+#   name: {{ .Values.apiservice.name }}
+#   namespace: {{ .Release.Namespace }}
+# spec:
+#   vaultConnectionRef: {{ .Chart.Name }}
+#   method: kubernetes
+#   mount: {{ .Values.vault.kubernetesAuthMountPath }}
+#   kubernetes:
+#     role: {{ .Chart.Name }}-{{ .Values.apiservice.name }}-{{ .Values.env }}
+#     serviceAccount: {{ .Values.apiservice.name }}
+# ---
+# apiVersion: secrets.hashicorp.com/v1beta1
+# kind: VaultStaticSecret
+# metadata:
+#   name: {{ .Values.apiservice.name }}-postgres-user
+#   namespace: {{ .Release.Namespace }}
+# spec:
+#   vaultAuthRef: {{ .Values.apiservice.name }}
+#   mount: {{ .Values.vault.kvEngine.mountPath }}
+#   type: kv-{{ .Values.vault.kvEngine.version }}
+#   path: {{ replace "<env>" .Values.env .Values.postgres.vaultSecretPath }}
+#   refreshAfter: 10m
+#   rolloutRestartTargets:
+#     - name: {{ .Values.apiservice.name }}
+#       kind: Deployment
+#   destination:
+#     name: {{ .Values.apiservice.name }}-postgres-user
+#     create: true
+#     overwrite: true
 ---
-{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -35,7 +61,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ ternary .Values.apiservice.name "default" .Values.serviceAccount.create }}
+      serviceAccountName: {{ .Values.apiservice.name }}
       securityContext:
         fsGroup: 1000
         runAsGroup: 1000
@@ -53,31 +79,30 @@ spec:
             privileged: false
             readOnlyRootFilesystem: true
           image: {{ .Values.apiservice.image.repository | default .Values.images.repository }}:{{ .Values.apiservice.image.tag }}
-          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.name }}-credentials
+                  name: {{ .Values.postgres.name }}-user
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.name }}-credentials
+                  name: {{ .Values.postgres.name }}-user
                   key: password
             - name: DATABASE_URL
               value: "postgresql://$(DB_USERNAME):$(DB_PASSWORD)@{{ .Values.postgres.name }}-rw.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c%20search_path%3D{{ .Values.postgres.schema }}"
             - name: READ_DATABASE_URL
               value: "postgresql://$(DB_USERNAME):$(DB_PASSWORD)@{{ .Values.postgres.name }}-ro.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c%20search_path%3D{{ .Values.postgres.schema }}"
           readinessProbe:
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             httpGet:
               path: /api/health
               port: 3000
           livenessProbe:
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             httpGet:
               path: /api/health
               port: 3000

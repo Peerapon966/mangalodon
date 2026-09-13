@@ -1,19 +1,42 @@
-{{- if .Values.serviceAccount.create }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Values.postgres.name }}
   namespace: {{ .Release.Namespace }}
-  {{- with .Values.serviceAccount.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
 ---
-{{- end }}
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: {{ .Values.postgres.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  vaultConnectionRef: {{ .Chart.Name }}
+  method: kubernetes
+  mount: {{ .Values.vault.kubernetesAuthMountPath }}
+  kubernetes:
+    role: {{ .Chart.Name }}-{{ .Values.postgres.name }}-{{ .Values.env }}
+    serviceAccount: {{ .Values.postgres.name }}
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: {{ .Values.postgres.name }}-user
+  namespace: {{ .Release.Namespace }}
+spec:
+  vaultAuthRef: {{ .Values.postgres.name }}
+  mount: {{ .Values.vault.kvEngine.mountPath }}
+  type: kv-{{ .Values.vault.kvEngine.version }}
+  path: {{ replace "<env>" .Values.env .Values.postgres.vaultSecretPath }}
+  refreshAfter: 10m
+  destination:
+    name: {{ .Values.postgres.name }}-user
+    create: true
+    overwrite: true
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: initdb
+  name: {{ .Values.postgres.name }}-initdb
   namespace: {{ .Release.Namespace }}
 data:
   schema.sql: |
@@ -107,21 +130,6 @@ data:
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 ---
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: {{ .Values.postgres.name }}-credentials
-  namespace: {{ .Release.Namespace }}
-spec:
-  secretStoreRef:
-    name: {{ .Chart.Name }}
-    kind: SecretStore
-  target:
-    name: {{ .Values.postgres.name }}-credentials
-  dataFrom:
-    - extract:
-        key: {{ .Values.postgres.vaultSecretPath }}
----
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -136,7 +144,7 @@ spec:
     kind: ClusterImageCatalog
     name: postgresql-minimal-trixie
     major: {{ .Values.postgres.version }}
-  instances: {{ .Values.postgres.instanceCount }}
+  instances: {{ .Values.postgres.replicas }}
   {{- if .Values.postgres.extensions.pgvector }}
   postgresql:
     extensions:
@@ -147,10 +155,14 @@ spec:
       database: {{ .Chart.Name }}
       owner: {{ .Values.postgres.username }}
       secret:
-        name: {{ .Values.postgres.name }}-credentials
+        name: {{ .Values.postgres.name }}-user
       postInitApplicationSQLRefs:
         configMapRefs:
-          - name: initdb
+          - name: {{ .Values.postgres.name }}-initdb
             key: schema.sql
   storage:
-    size: {{ .Values.postgres.storageSize }}
+    storageClass: {{ .Values.postgres.storage.className }}
+    size: {{ .Values.postgres.storage.size }}
+  walStorage:
+    storageClass: {{ .Values.postgres.walStorage.className }}
+    size: {{ .Values.postgres.walStorage.size }}

@@ -17,9 +17,10 @@ popd
 helm upgrade --install $project charts/${project} \
   --namespace ${project}-${env} \
   --create-namespace \
-  --set ingress.host=${project}-${env}.com \
-  --set postgres.vaultSecretPath=kv/${project}/${env}/postgres/login-secret \
-  --set postgres.instanceCount=1 \
+  --set env=dev \
   --set frontend.image.repository=$(echo $repos | jq -r '.frontend'),frontend.image.tag=$(echo $image_tags | jq -r '.frontend') \
   --set apiservice.image.repository=$(echo $repos | jq -r '.apiservice'),apiservice.image.tag=$(echo $image_tags | jq -r '.apiservice') \
-  --set scrapeservice.image.repository=$(echo $repos | jq -r '.scrapeservice'),scrapeservice.image.tag=$(echo $image_tags | jq -r '.scrapeservice')
+  --set scrapeservice.image.repository=$(echo $repos | jq -r '.scrapeservice'),scrapeservice.image.tag=$(echo $image_tags | jq -r '.scrapeservice') \
+  --set postgres.replicas=1 \
+  --set rabbitmq.replicas=1 \
+  --set ingress.host=${project}-${env}.com
