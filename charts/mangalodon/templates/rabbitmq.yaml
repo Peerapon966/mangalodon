@@ -15,7 +15,9 @@ spec:
     vault:
       role: {{ .Chart.Name }}-{{ .Values.rabbitmq.name }}-{{ .Values.env }}
       annotations:
-        {{- include "vault.annotations" . | nindent 8 }}
-        vault.hashicorp.com/role: {{ .Chart.Name }}-{{ .Values.rabbitmq.name }}-{{ .Values.env }}
-      defaultUserPath: {{ .Values.vault.kvEngine.mountPath }}/{{ replace "<env>" .Values.env .Values.rabbitmq.vaultSecretPath.defaultUser }}
+        vault.hashicorp.com/service: {{ .Values.vault.server }}
+        vault.hashicorp.com/tls-secret: {{ .Chart.Name }}-vault-ca
+        vault.hashicorp.com/ca-cert: "/vault/tls/ca.crt"
+        vault.hashicorp.com/template-static-secret-render-interval: "5m"
+      defaultUserPath: {{ .Values.vault.kvEngine.mountPath }}{{ ternary "/data/" "/" (eq .Values.vault.kvEngine.version "v2") }}{{ replace "<env>" .Values.env .Values.rabbitmq.vaultSecretPath.defaultUser }}
     # TODO: add mTLS by cert-manager
