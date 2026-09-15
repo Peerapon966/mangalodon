@@ -2,8 +2,8 @@ apiVersion: v2
 name: mangalodon
 description: A Helm chart for Kubernetes for Mangalodon
 type: application
-version: 0.0.1-alpha.3
-appVersion: "v0.0.2-alpha"
+version: 0.0.2
+appVersion: "v0.0.2-alpha.1"
 
 # TODO: add dependencies check before installing chart
 # TODO: add network policy between pods/svcs
@@ -12,11 +12,11 @@ appVersion: "v0.0.2-alpha"
 #   - name: cloudnative-pg
 #     version: 0.29.0
 #     repository: https://cloudnative-pg.github.io/charts
-#   - name: external-secrets
-#     version: 1.2.1
-#     repository: https://charts.external-secrets.io
 #   - name: vault
 #     version: 0.34.1
+#     repository: https://helm.releases.hashicorp.com
+#   - name: vault-secrets-operator
+#     version: 1.5.1
 #     repository: https://helm.releases.hashicorp.com
 #   - name: cert-manager
 #     version: 1.21.1
