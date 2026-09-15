@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   mangalodon:
   - apiVersion: v2
+    appVersion: v0.0.2-alpha.1
+    created: "2026-09-15T13:44:19.711337293Z"
+    description: A Helm chart for Kubernetes for Mangalodon
+    digest: 009ebd1fc442ed8c97279e3851cd30e5d68a9de8d3f576542c833257bc0616be
+    name: mangalodon
+    type: application
+    urls:
+    - https://github.com/Peerapon966/mangalodon/releases/download/0.0.2/mangalodon-0.0.2.tgz
+    version: 0.0.2
+  - apiVersion: v2
     appVersion: v0.0.2-alpha
     created: "2026-09-08T10:36:00.663654755Z"
     description: A Helm chart for Kubernetes for Mangalodon
@@ -41,4 +51,4 @@ entries:
     urls:
     - https://github.com/Peerapon966/mangalodon/releases/download/0.0.1-alpha/mangalodon-0.0.1-alpha.tgz
     version: 0.0.1-alpha
-generated: "2026-09-08T10:36:00.663690432Z"
+generated: "2026-09-15T13:44:19.711373322Z"
