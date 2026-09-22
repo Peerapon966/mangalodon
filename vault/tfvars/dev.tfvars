@@ -12,14 +12,15 @@ services = {
   scrapeservice = {
     allow_secret_paths = ["kv/data/mangalodon/dev/scrapeservice/*", "kv/data/mangalodon/dev/postgres/*", "kv/data/mangalodon/dev/rabbitmq/*"]
   }
+  scrapescheduler = {
+    allow_secret_paths = []
+  }
   postgres = {
     allow_secret_paths = ["kv/data/mangalodon/dev/postgres/*"]
   }
   rabbitmq = {
-    allow_secret_paths   = ["kv/data/mangalodon/dev/rabbitmq/*"]
-    service_account_name = "rabbitmq-server"
-  }
-  cronjob = {
-    allow_secret_paths = []
+    allow_secret_paths         = ["kv/data/mangalodon/dev/rabbitmq/*"]
+    service_account_names      = ["rabbitmq-server", "messaging-topology-operator"]
+    service_account_namespaces = ["rabbitmq-system"]
   }
 }

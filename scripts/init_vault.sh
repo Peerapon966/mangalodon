@@ -44,7 +44,11 @@ fi
 root_dir="$(dirname -- $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd))"
 pushd "${root_dir}/vault" > /dev/null 2>&1
 terraform init -backend-config=init/backend-${env}.hcl -reconfigure
+sleep 2
+
 terraform workspace select -or-create $env
+sleep 2
+
 terraform apply -var-file=tfvars/${env}.tfvars -auto-approve
 popd
 

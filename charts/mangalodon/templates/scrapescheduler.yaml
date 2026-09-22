@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.scrapescheduler.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.scrapescheduler.name }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.scrapescheduler.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.scrapescheduler.name }}
+spec:
+  schedule: {{ .Values.scrapescheduler.schedule }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: {{ .Values.scrapescheduler.name }}
+              image: {{ .Values.scrapescheduler.image.repository | default .Values.images.repository }}:{{ .Values.scrapescheduler.image.tag }}
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.postgres.name }}-creds
+                      key: rwUrl
+                {{- if gt (int .Values.postgres.replicas) 1 }}
+                - name: READ_DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.postgres.name }}-creds
+                      key: roUrl
+                {{- end }}
+                - name: RABBITMQ_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.rabbitmq.name }}-creds
+                      key: host
+              {{- with .Values.scrapeservice.resources }}
+              resources:
+                {{- toYaml . | nindent 12 }}
+              {{- end }}
+          restartPolicy: OnFailure

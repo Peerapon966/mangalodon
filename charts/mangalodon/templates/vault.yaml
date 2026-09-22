@@ -3,12 +3,16 @@ kind: ServiceAccount
 metadata:
   name: {{ .Chart.Name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: {{ .Chart.Name }}-vault-ca
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
 type: Opaque
 data:
   ca.crt: {{ .Values.vault.caBundle }}
@@ -18,6 +22,8 @@ kind: VaultConnection
 metadata:
   name: {{ .Chart.Name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
 spec:
   address: {{ .Values.vault.server }}
   caCertSecretRef: {{ .Chart.Name }}-vault-ca

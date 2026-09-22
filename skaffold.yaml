@@ -3,13 +3,23 @@ kind: Config
 metadata:
   name: mangalodon
 build:
+  tagPolicy:
+    sha256: {}
   artifacts:
-    - image: mangalodon/frontend
+    - image: heftychonk/mangalodon-frontend
       context: src/frontend
       docker:
         dockerfile: Dockerfile
-    - image: mangalodon/apiservice
+    - image: heftychonk/mangalodon-apiservice
       context: src/apiservice
+      docker:
+        dockerfile: Dockerfile
+    - image: heftychonk/mangalodon-scrapeservice
+      context: src/scrapeservice
+      docker:
+        dockerfile: Dockerfile
+    - image: heftychonk/mangalodon-scrapescheduler
+      context: src/scrapescheduler
       docker:
         dockerfile: Dockerfile
 deploy:
@@ -17,8 +27,28 @@ deploy:
     releases:
       - name: mangalodon
         chartPath: charts/mangalodon
+        namespace: mangalodon-dev
+        createNamespace: true
         valuesFiles:
           - charts/mangalodon/values.yaml
         setValueTemplates:
-          frontend.imageTag: "{{.DIGEST_HEX_741448960615_dkr_ecr_ap_southeast_1_amazonaws_com_mangalodon_frontend}}"
-          apiservice.imageTag: "{{.DIGEST_HEX_741448960615_dkr_ecr_ap_southeast_1_amazonaws_com_mangalodon_apiservice}}"
+          env: dev
+
+          frontend.image.repository: "{{.IMAGE_REPO_heftychonk_mangalodon_frontend}}"
+          frontend.image.tag: "{{.IMAGE_TAG_heftychonk_mangalodon_frontend}}"
+
+          apiservice.image.repository: "{{.IMAGE_REPO_heftychonk_mangalodon_apiservice}}"
+          apiservice.image.tag: "{{.IMAGE_TAG_heftychonk_mangalodon_apiservice}}"
+
+          scrapeservice.image.repository: "{{.IMAGE_REPO_heftychonk_mangalodon_scrapeservice}}"
+          scrapeservice.image.tag: "{{.IMAGE_TAG_heftychonk_mangalodon_scrapeservice}}"
+
+          scrapescheduler.image.repository: "{{.IMAGE_REPO_heftychonk_mangalodon_scrapescheduler}}"
+          scrapescheduler.image.tag: "{{.IMAGE_TAG_heftychonk_mangalodon_scrapescheduler}}"
+          scrapescheduler.schedule: "* * * * *"
+
+          postgres.replicas: 1
+
+          rabbitmq.replicas: 1
+
+          ingress.host: mangalodon-dev.com

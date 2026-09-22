@@ -1,3 +1,47 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: {{ .Values.rabbitmq.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.rabbitmq.name }}
+spec:
+  vaultConnectionRef: {{ .Chart.Name }}
+  method: kubernetes
+  mount: {{ .Values.vault.kubernetesAuthMountPath }}
+  kubernetes:
+    role: {{ .Chart.Name }}-{{ .Values.rabbitmq.name }}-{{ .Values.env }}
+    serviceAccount: {{ .Values.rabbitmq.name }}-server
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: {{ .Values.rabbitmq.name }}-creds
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.rabbitmq.name }}
+spec:
+  vaultAuthRef: {{ .Values.rabbitmq.name }}
+  mount: {{ .Values.vault.kvEngine.mountPath }}
+  type: kv-{{ .Values.vault.kvEngine.version }}
+  path: {{ replace "<env>" .Values.env .Values.rabbitmq.vaultSecretPath.defaultUser }}
+  refreshAfter: 10m
+  rolloutRestartTargets:
+    - name: {{ .Values.rabbitmq.name }}-server
+      kind: StatefulSet
+  destination:
+    name: {{ .Values.rabbitmq.name }}-creds
+    create: true
+    overwrite: true
+    transformation:
+      excludeRaw: true
+      templates:
+        host:
+          text: |
+            {{ `{{- printf "amqp://%s:%s@` }}{{ .Values.rabbitmq.name }}:{{ ternary "5671" "5672" .Values.rabbitmq.tlsEnabled }}/{{ default .Chart.Name .Values.rabbitmq.vhost }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
+---
 apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster
 metadata:
@@ -21,3 +65,32 @@ spec:
         vault.hashicorp.com/template-static-secret-render-interval: "5m"
       defaultUserPath: {{ .Values.vault.kvEngine.mountPath }}{{ ternary "/data/" "/" (eq .Values.vault.kvEngine.version "v2") }}{{ replace "<env>" .Values.env .Values.rabbitmq.vaultSecretPath.defaultUser }}
     # TODO: add mTLS by cert-manager
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Vhost
+metadata:
+  name: {{ .Values.rabbitmq.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.rabbitmq.name }}
+spec:
+  name: {{ default .Chart.Name .Values.rabbitmq.vhost }}
+  rabbitmqClusterReference:
+    name: {{ .Values.rabbitmq.name }}
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Queue
+metadata:
+  name: {{ .Values.rabbitmq.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.rabbitmq.name }}
+spec:
+  name: {{ .Values.rabbitmq.queueName }}
+  vhost: {{ default .Chart.Name .Values.rabbitmq.vhost }}
+  autoDelete: false
+  durable: true
+  rabbitmqClusterReference:
+    name: {{ .Values.rabbitmq.name }}

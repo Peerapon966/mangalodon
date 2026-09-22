@@ -32,12 +32,13 @@ variable "vault_ca_cert_file" {
 variable "services" {
   description = "Configuration for specific services and the exact Vault secret paths they can read"
   type = map(object({
-    allow_secret_paths   = list(string)
-    service_account_name = optional(string)
+    allow_secret_paths         = list(string)
+    service_account_names      = optional(list(string))
+    service_account_namespaces = optional(list(string))
   }))
 
   validation {
-    condition     = toset(keys(var.services)) == toset(["frontend", "apiservice", "scrapeservice", "postgres", "rabbitmq", "cronjob"])
-    error_message = "var.services must contain exactly the following keys: frontend, apiservice, scrapeservice, postgres, rabbitmq, cronjob."
+    condition     = toset(keys(var.services)) == toset(["frontend", "apiservice", "scrapeservice", "scrapescheduler", "postgres", "rabbitmq"])
+    error_message = "var.services must contain exactly the following keys: frontend, apiservice, scrapeservice, scrapescheduler, postgres, rabbitmq."
   }
 }

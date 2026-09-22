@@ -22,3 +22,17 @@ Run the deploy_dev script to deploy app to local Kubernetes cluster
 ```bash
 bash scripts/deploy_dev.sh
 ```
+
+or using Skaffold
+
+```bash
+skaffold dev --trigger=manual
+```
+
+## Note
+
+When using RabbitMQ Messaging Topology Kubernetes Operator, if RabbitMQ Kubernetes Operators is configured to read default admin credentials from Vault, the below configuration is required for the Messaging Topology Operator to read admin credentials from Vault and use them to authenticate into RabbitMQ cluster to create resources
+
+```bash
+kc set env -n rabbitmq-system deployment/messaging-topology-operator OPERATOR_VAULT_ROLE=<vault_role> VAULT_ADDR=<vault_server_addr> VAULT_SKIP_VERIFY=1
+```

@@ -3,38 +3,9 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.apiservice.name }}
   namespace: {{ .Release.Namespace }}
-# ---
-# apiVersion: secrets.hashicorp.com/v1beta1
-# kind: VaultAuth
-# metadata:
-#   name: {{ .Values.apiservice.name }}
-#   namespace: {{ .Release.Namespace }}
-# spec:
-#   vaultConnectionRef: {{ .Chart.Name }}
-#   method: kubernetes
-#   mount: {{ .Values.vault.kubernetesAuthMountPath }}
-#   kubernetes:
-#     role: {{ .Chart.Name }}-{{ .Values.apiservice.name }}-{{ .Values.env }}
-#     serviceAccount: {{ .Values.apiservice.name }}
-# ---
-# apiVersion: secrets.hashicorp.com/v1beta1
-# kind: VaultStaticSecret
-# metadata:
-#   name: {{ .Values.apiservice.name }}-postgres-user
-#   namespace: {{ .Release.Namespace }}
-# spec:
-#   vaultAuthRef: {{ .Values.apiservice.name }}
-#   mount: {{ .Values.vault.kvEngine.mountPath }}
-#   type: kv-{{ .Values.vault.kvEngine.version }}
-#   path: {{ replace "<env>" .Values.env .Values.postgres.vaultSecretPath }}
-#   refreshAfter: 10m
-#   rolloutRestartTargets:
-#     - name: {{ .Values.apiservice.name }}
-#       kind: Deployment
-#   destination:
-#     name: {{ .Values.apiservice.name }}-postgres-user
-#     create: true
-#     overwrite: true
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.apiservice.name }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -82,20 +53,18 @@ spec:
           ports:
             - containerPort: 3000
           env:
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.postgres.name }}-user
-                  key: username
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.postgres.name }}-user
-                  key: password
             - name: DATABASE_URL
-              value: "postgresql://$(DB_USERNAME):$(DB_PASSWORD)@{{ .Values.postgres.name }}-rw.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c%20search_path%3D{{ .Values.postgres.schema }}"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.name }}-creds
+                  key: rwUrl
+            {{- if gt (int .Values.postgres.replicas) 1 }}
             - name: READ_DATABASE_URL
-              value: "postgresql://$(DB_USERNAME):$(DB_PASSWORD)@{{ .Values.postgres.name }}-ro.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c%20search_path%3D{{ .Values.postgres.schema }}"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.name }}-creds
+                  key: roUrl
+            {{- end }}
           readinessProbe:
             initialDelaySeconds: 30
             httpGet:

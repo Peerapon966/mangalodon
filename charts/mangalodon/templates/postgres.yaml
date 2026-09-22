@@ -3,12 +3,18 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.postgres.name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.postgres.name }}
 ---
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultAuth
 metadata:
   name: {{ .Values.postgres.name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.postgres.name }}
 spec:
   vaultConnectionRef: {{ .Chart.Name }}
   method: kubernetes
@@ -20,8 +26,11 @@ spec:
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: {{ .Values.postgres.name }}-user
+  name: {{ .Values.postgres.name }}-creds
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.postgres.name }}
 spec:
   vaultAuthRef: {{ .Values.postgres.name }}
   mount: {{ .Values.vault.kvEngine.mountPath }}
@@ -29,24 +38,42 @@ spec:
   path: {{ replace "<env>" .Values.env .Values.postgres.vaultSecretPath }}
   refreshAfter: 10m
   destination:
-    name: {{ .Values.postgres.name }}-user
+    name: {{ .Values.postgres.name }}-creds
     create: true
     overwrite: true
+    transformation:
+      excludeRaw: true
+      templates:
+        rwUrl: |
+            {{ `{{- printf "postgresql://%s:%s@` }}{{ .Values.postgres.name }}-rw.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c%20search_path%3D{{ .Values.postgres.schema }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
+        roUrl: |
+            {{ `{{- printf "postgresql://%s:%s@` }}{{ .Values.postgres.name }}-ro.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c%20search_path%3D{{ .Values.postgres.schema }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Values.postgres.name }}-initdb
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.postgres.name }}
 data:
   schema.sql: |
     SET ROLE {{ .Values.postgres.username }};
 
+    CREATE TABLE IF NOT EXISTS site (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL UNIQUE,
+      base_url VARCHAR(255) NOT NULL,
+      path JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS scraper (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL UNIQUE,
-      note TEXT,
-      url_format VARCHAR(512) NOT NULL,
+      site_id INT NOT NULL REFERENCES site(id) ON DELETE CASCADE,
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
@@ -110,6 +137,11 @@ data:
     END;
     $$ language 'plpgsql';
 
+    CREATE OR REPLACE TRIGGER update_site_updated_at
+    BEFORE UPDATE ON site
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
     CREATE OR REPLACE TRIGGER update_scraper_updated_at
     BEFORE UPDATE ON scraper
     FOR EACH ROW
@@ -155,7 +187,7 @@ spec:
       database: {{ .Chart.Name }}
       owner: {{ .Values.postgres.username }}
       secret:
-        name: {{ .Values.postgres.name }}-user
+        name: {{ .Values.postgres.name }}-creds
       postInitApplicationSQLRefs:
         configMapRefs:
           - name: {{ .Values.postgres.name }}-initdb

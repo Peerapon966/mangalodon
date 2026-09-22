@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.scrapeservice.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.scrapeservice.name }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: {{ .Values.scrapeservice.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.scrapeservice.name }}
+spec:
+  jobTargetRef:
+    parallelism: 1
+    completions: 1
+    activeDeadlineSeconds: 600
+    backoffLimit: 3
+    template:
+      spec:
+        containers:
+          - name: {{ .Values.scrapeservice.name }}
+            image: {{ .Values.scrapeservice.image.repository | default .Values.images.repository }}:{{ .Values.scrapeservice.image.tag }}
+            env:
+              - name: RABBITMQ_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.rabbitmq.name }}-creds
+                    key: host
+            {{- with .Values.scrapeservice.resources }}
+            resources:
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+        restartPolicy: Never
+  pollingInterval: 30
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  maxReplicaCount: 20
+  rollout:
+    strategy: gradual
+    propagationPolicy: background
+  scalingStrategy:
+    strategy: eager
+  triggers:
+    - type: rabbitmq
+      metadata:
+        mode: QueueLength
+        queueName: {{ .Values.rabbitmq.queueName }}
+        value: "1"
+        unsafeSsl: "true"
+        hostFromEnv: RABBITMQ_HOST

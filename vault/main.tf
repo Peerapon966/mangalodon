@@ -47,8 +47,8 @@ resource "vault_kubernetes_auth_backend_role" "read_secrets_role" {
     ? "${var.project}-${var.environment}"
     : "${var.project}-${each.key}-${var.environment}"
   )
-  bound_service_account_names      = [var.granularity == "environment" ? "${var.project}" : coalesce(each.value.service_account_name, each.key)]
-  bound_service_account_namespaces = ["${var.project}-${var.environment}"]
+  bound_service_account_names      = concat([var.granularity == "environment" ? var.project : each.key], coalesce(each.value.service_account_names, []))
+  bound_service_account_namespaces = concat(["${var.project}-${var.environment}"], coalesce(each.value.service_account_namespaces, []))
   token_policies                   = [vault_policy.read_secrets_policy[each.key].name]
   token_ttl                        = 3600
 }

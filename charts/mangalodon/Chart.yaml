@@ -9,6 +9,8 @@ appVersion: "v0.0.2-alpha.1"
 # TODO: add network policy between pods/svcs
 
 # dependencies:
+#   - name: rabbitmq
+#   - name: messaging-topology-operator
 #   - name: cloudnative-pg
 #     version: 0.29.0
 #     repository: https://cloudnative-pg.github.io/charts
@@ -21,4 +23,6 @@ appVersion: "v0.0.2-alpha.1"
 #   - name: cert-manager
 #     version: 1.21.1
 #     repository: oci://quay.io/jetstack/charts/cert-manager
-#   - name: rabbitmq
+#   - name: keda
+#     version: 2.20.2
+#     repository: https://kedacore.github.io/charts

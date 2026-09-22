@@ -3,12 +3,18 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.frontend.name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.frontend.name }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Values.frontend.name }}-nginx-config
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.frontend.name }}
 data:
   nginx.conf: |
     server {

@@ -57,6 +57,20 @@ scrapeservice:
       cpu: 300m
       memory: 256Mi
 
+scrapescheduler:
+  name: scrapescheduler
+  image:
+    repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/scrapescheduler
+    tag: 0.0.1-alpha
+  schedule: "0 0-23/3 * * *" # every 3 hours (0,3,6,...)
+  resources:
+    requests:
+      cpu: 200m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
 postgres:
   name: postgres
   username: app
@@ -75,7 +89,10 @@ postgres:
 
 rabbitmq:
   name: rabbitmq
+  vhost:
+  queueName: scrape-task
   replicas: 3
+  tlsEnabled: false
   vaultSecretPath:
     defaultUser: mangalodon/<env>/rabbitmq/user
     pkiIssuer: mangalodon/<env>/rabbitmq/cert-issuer
@@ -85,7 +102,7 @@ rabbitmq:
 
 ingress:
   className: cilium
-  host: ""
+  host:
   annotations: {}
   tls: []
 
