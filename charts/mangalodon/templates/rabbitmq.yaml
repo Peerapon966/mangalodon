@@ -40,7 +40,7 @@ spec:
       templates:
         host:
           text: |
-            {{ `{{- printf "amqp://%s:%s@` }}{{ .Values.rabbitmq.name }}:{{ ternary "5671" "5672" .Values.rabbitmq.tlsEnabled }}/{{ default .Chart.Name .Values.rabbitmq.vhost }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
+            {{ `{{- printf "amqp://%s:%s@` }}{{ .Values.rabbitmq.name }}.{{ .Release.Namespace }}.svc.cluster.local:{{ ternary "5671" "5672" .Values.rabbitmq.tlsEnabled }}/{{ default .Chart.Name .Values.rabbitmq.vhost }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
 ---
 apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster

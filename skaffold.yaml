@@ -45,7 +45,7 @@ deploy:
 
           scrapescheduler.image.repository: "{{.IMAGE_REPO_heftychonk_mangalodon_scrapescheduler}}"
           scrapescheduler.image.tag: "{{.IMAGE_TAG_heftychonk_mangalodon_scrapescheduler}}"
-          scrapescheduler.schedule: "* * * * *"
+          scrapescheduler.schedule: "0-59/5 * * * *"
 
           postgres.replicas: 1
 

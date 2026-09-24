@@ -23,9 +23,17 @@ spec:
     backoffLimit: 3
     template:
       spec:
+        serviceAccountName: {{ .Values.scrapeservice.name }}
         containers:
           - name: {{ .Values.scrapeservice.name }}
             image: {{ .Values.scrapeservice.image.repository | default .Values.images.repository }}:{{ .Values.scrapeservice.image.tag }}
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+              privileged: false
+              readOnlyRootFilesystem: true
             env:
               - name: RABBITMQ_HOST
                 valueFrom:
@@ -34,13 +42,13 @@ spec:
                     key: host
             {{- with .Values.scrapeservice.resources }}
             resources:
-              {{- toYaml . | nindent 12 }}
+              {{- toYaml . | nindent 14 }}
             {{- end }}
         restartPolicy: Never
   pollingInterval: 30
   successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 5
-  maxReplicaCount: 20
+  maxReplicaCount: 10
   rollout:
     strategy: gradual
     propagationPolicy: background

@@ -1,6 +1,4 @@
-FROM golang:1.25-alpine AS builder
-
-ARG ENV=dev
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
@@ -8,15 +6,11 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN mv internal/crawler/config/configs.${ENV}.json.enc internal/crawler/config/configs.json.enc
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o /bin/scraper ./cmd/scraper
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /go/bin/scraper ./cmd/scraper
 
-FROM public.ecr.aws/lambda/provided:al2023
+FROM gcr.io/distroless/base-debian13:nonroot
 
-WORKDIR /var/runtime
+COPY --from=builder /go/bin/scraper /
 
-COPY --from=builder /bin/scraper ./bootstrap
-RUN chmod +x ./bootstrap
-
-CMD ["./bootstrap"]
+CMD ["/scraper"]

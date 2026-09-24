@@ -1,22 +1,16 @@
 FROM golang:1.26-alpine AS builder
 
-# ARG ENV=dev
-
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-# RUN mv internal/crawler/config/configs.${ENV}.json.enc internal/crawler/config/configs.json.enc
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o /bin/scraper ./cmd/scraper
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /go/bin/scheduler ./cmd/scheduler
 
-FROM golang:1.26-alpine
+FROM gcr.io/distroless/base-debian13:nonroot
 
-WORKDIR /var/runtime
+COPY --from=builder /go/bin/scheduler /
 
-COPY --from=builder /bin/scheduler ./bootstrap
-RUN chmod +x ./bootstrap
-
-CMD ["./bootstrap"]
+CMD ["/scheduler"]

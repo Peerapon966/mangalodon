@@ -16,14 +16,22 @@ metadata:
     app: {{ .Chart.Name }}
     service: {{ .Values.scrapescheduler.name }}
 spec:
-  schedule: {{ .Values.scrapescheduler.schedule }}
+  schedule: {{ .Values.scrapescheduler.schedule | quote }}
   jobTemplate:
     spec:
       template:
         spec:
+          serviceAccountName: {{ .Values.scrapescheduler.name }}
           containers:
             - name: {{ .Values.scrapescheduler.name }}
               image: {{ .Values.scrapescheduler.image.repository | default .Values.images.repository }}:{{ .Values.scrapescheduler.image.tag }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                privileged: false
+                readOnlyRootFilesystem: true
               env:
                 - name: DATABASE_URL
                   valueFrom:
@@ -42,8 +50,8 @@ spec:
                     secretKeyRef:
                       name: {{ .Values.rabbitmq.name }}-creds
                       key: host
-              {{- with .Values.scrapeservice.resources }}
+              {{- with .Values.scrapescheduler.resources }}
               resources:
-                {{- toYaml . | nindent 12 }}
+                {{- toYaml . | nindent 16 }}
               {{- end }}
           restartPolicy: OnFailure

@@ -44,10 +44,12 @@ spec:
     transformation:
       excludeRaw: true
       templates:
-        rwUrl: |
-            {{ `{{- printf "postgresql://%s:%s@` }}{{ .Values.postgres.name }}-rw.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c%20search_path%3D{{ .Values.postgres.schema }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
-        roUrl: |
-            {{ `{{- printf "postgresql://%s:%s@` }}{{ .Values.postgres.name }}-ro.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c%20search_path%3D{{ .Values.postgres.schema }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
+        rwUrl:
+          text: |
+            {{ `{{- printf "postgresql://%s:%s@` }}{{ .Values.postgres.name }}-rw.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c search_path={{ .Values.postgres.schema }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
+        roUrl:
+          text: |
+            {{ `{{- printf "postgresql://%s:%s@` }}{{ .Values.postgres.name }}-ro.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c search_path={{ .Values.postgres.schema }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
 ---
 apiVersion: v1
 kind: ConfigMap

@@ -76,6 +76,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: {{ .Values.frontend.name }}
+          image: {{ .Values.frontend.image.repository | default .Values.images.repository }}:{{ .Values.frontend.image.tag }}
+          ports:
+            - containerPort: 8080
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -83,9 +86,6 @@ spec:
                 - ALL
             privileged: false
             readOnlyRootFilesystem: true
-          image: {{ .Values.frontend.image.repository | default .Values.images.repository }}:{{ .Values.frontend.image.tag }}
-          ports:
-            - containerPort: 8080
           readinessProbe:
             initialDelaySeconds: 10
             httpGet:
