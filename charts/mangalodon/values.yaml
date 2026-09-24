@@ -90,7 +90,9 @@ postgres:
 rabbitmq:
   name: rabbitmq
   vhost:
-  queueName: scrape-task
+  queue:
+    name: scrape-task
+    type: quorum
   replicas: 3
   tlsEnabled: false
   vaultSecretPath:

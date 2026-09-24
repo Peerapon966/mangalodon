@@ -35,11 +35,13 @@ spec:
               privileged: false
               readOnlyRootFilesystem: true
             env:
-              - name: RABBITMQ_HOST
+              - name: RABBITMQ_URL
                 valueFrom:
                   secretKeyRef:
                     name: {{ .Values.rabbitmq.name }}-creds
                     key: host
+              - name: RABBITMQ_QUEUE
+                value: {{ .Values.rabbitmq.queue.name }}
             {{- with .Values.scrapeservice.resources }}
             resources:
               {{- toYaml . | nindent 14 }}
@@ -58,7 +60,7 @@ spec:
     - type: rabbitmq
       metadata:
         mode: QueueLength
-        queueName: {{ .Values.rabbitmq.queueName }}
+        queueName: {{ .Values.rabbitmq.queue.name }}
         value: "1"
         unsafeSsl: "true"
-        hostFromEnv: RABBITMQ_HOST
+        hostFromEnv: RABBITMQ_URL

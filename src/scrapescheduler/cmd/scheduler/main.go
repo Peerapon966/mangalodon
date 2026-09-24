@@ -1,14 +1,15 @@
 package main
 
 import (
-	"os"
 	"context"
 	"log"
+	"os"
 
 	rmq "github.com/rabbitmq/rabbitmq-amqp-go-client/pkg/rabbitmqamqp"
 )
 
-var brokerURI = os.Getenv("RABBITMQ_HOST")
+var brokerURI = os.Getenv("RABBITMQ_URL")
+var queueName = os.Getenv("RABBITMQ_QUEUE")
 
 func main() {
 	ctx := context.Background()
@@ -21,12 +22,12 @@ func main() {
 		_ = env.CloseConnections(context.Background())
 	}()
 
-	_, err = conn.Management().DeclareQueue(ctx, &rmq.QuorumQueueSpecification{Name: "hello"})
+	_, err = conn.Management().DeclareQueue(ctx, &rmq.QuorumQueueSpecification{Name: queueName})
 	if err != nil {
 		log.Panicf("Failed to declare a queue: %v", err)
 	}
 
-	publisher, err := conn.NewPublisher(ctx, &rmq.QueueAddress{Queue: "hello"}, nil)
+	publisher, err := conn.NewPublisher(ctx, &rmq.QueueAddress{Queue: queueName}, nil)
 	if err != nil {
 		log.Panicf("Failed to create publisher: %v", err)
 	}

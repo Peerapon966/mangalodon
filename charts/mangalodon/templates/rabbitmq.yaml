@@ -88,8 +88,9 @@ metadata:
     app: {{ .Chart.Name }}
     service: {{ .Values.rabbitmq.name }}
 spec:
-  name: {{ .Values.rabbitmq.queueName }}
+  name: {{ .Values.rabbitmq.queue.name }}
   vhost: {{ default .Chart.Name .Values.rabbitmq.vhost }}
+  type: {{ .Values.rabbitmq.queue.type }}
   autoDelete: false
   durable: true
   rabbitmqClusterReference:
