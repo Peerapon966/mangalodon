@@ -68,24 +68,14 @@ spec:
       {{- end }}
       serviceAccountName: {{ .Values.frontend.name }}
       securityContext:
-        fsGroup: 1000
-        runAsGroup: 1000
-        runAsNonRoot: true
-        runAsUser: 1000
-        seccompProfile:
-          type: RuntimeDefault
+        {{- include "mangalodon.podSecurityContext" | indent 8 }}
       containers:
         - name: {{ .Values.frontend.name }}
           image: {{ .Values.frontend.image.repository | default .Values.images.repository }}:{{ .Values.frontend.image.tag }}
           ports:
             - containerPort: 8080
           securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            privileged: false
-            readOnlyRootFilesystem: true
+            {{- include "mangalodon.containerSecurityContext" | indent 12 }}
           readinessProbe:
             initialDelaySeconds: 10
             httpGet:

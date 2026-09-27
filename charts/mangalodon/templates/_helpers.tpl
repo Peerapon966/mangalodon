@@ -6,23 +6,27 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
-Common labels
+Pod security context
 */}}
-{{- define "mangalodon.labels" -}}
-helm.sh/chart: {{ include "mangalodon.chart" . }}
-{{ include "mangalodon.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- define "mangalodon.podSecurityContext" -}}
+fsGroup: 65532
+runAsUser: 65532
+runAsGroup: 65532
+runAsNonRoot: true
+seccompProfile:
+  type: RuntimeDefault
 {{- end }}
 
 {{/*
-Selector labels
+Container security context
 */}}
-{{- define "mangalodon.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "mangalodon.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+{{- define "mangalodon.containerSecurityContext" -}}
+allowPrivilegeEscalation: false
+capabilities:
+  drop:
+    - ALL
+privileged: false
+readOnlyRootFilesystem: true
 {{- end }}
 
 {{/*

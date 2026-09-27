@@ -17,7 +17,7 @@ spec:
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: {{ .Values.rabbitmq.name }}-creds
+  name: {{ .Values.rabbitmq.name }}-url
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Chart.Name }}
@@ -32,7 +32,7 @@ spec:
     - name: {{ .Values.rabbitmq.name }}-server
       kind: StatefulSet
   destination:
-    name: {{ .Values.rabbitmq.name }}-creds
+    name: {{ .Values.rabbitmq.name }}-url
     create: true
     overwrite: true
     transformation:

@@ -23,10 +23,11 @@ spec:
     role: {{ .Chart.Name }}-{{ .Values.postgres.name }}-{{ .Values.env }}
     serviceAccount: {{ .Values.postgres.name }}
 ---
+{{- range $key, $value := .Values.postgres.users }}
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: {{ .Values.postgres.name }}-creds
+  name: {{ .Values.postgres.name }}-{{ $key }}-user
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Chart.Name }}
@@ -35,134 +36,43 @@ spec:
   vaultAuthRef: {{ .Values.postgres.name }}
   mount: {{ .Values.vault.kvEngine.mountPath }}
   type: kv-{{ .Values.vault.kvEngine.version }}
-  path: {{ replace "<env>" .Values.env .Values.postgres.vaultSecretPath }}
+  path: {{ replace "<env>" .Values.env $value.vaultSecretPath }}
   refreshAfter: 10m
   destination:
-    name: {{ .Values.postgres.name }}-creds
+    name: {{ .Values.postgres.name }}-{{ $key }}-user
+    labels:
+      cnpg.io/reload: "true"
+    create: true
+    overwrite: true
+---
+{{- end }}
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: {{ .Values.postgres.name }}-url
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.postgres.name }}
+spec:
+  vaultAuthRef: {{ .Values.postgres.name }}
+  mount: {{ .Values.vault.kvEngine.mountPath }}
+  type: kv-{{ .Values.vault.kvEngine.version }}
+  path: {{ replace "<env>" .Values.env .Values.postgres.users.admin.vaultSecretPath }}
+  refreshAfter: 10m
+  destination:
+    name: {{ .Values.postgres.name }}-url
     create: true
     overwrite: true
     transformation:
       excludeRaw: true
       templates:
-        rwUrl:
+        rw:
           text: |
             {{ `{{- printf "postgresql://%s:%s@` }}{{ .Values.postgres.name }}-rw.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c search_path={{ .Values.postgres.schema }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
-        roUrl:
+        ro:
           text: |
             {{ `{{- printf "postgresql://%s:%s@` }}{{ .Values.postgres.name }}-ro.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}?options=-c search_path={{ .Values.postgres.schema }}{{ `" (get .Secrets "username") (get .Secrets "password") -}}` }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Values.postgres.name }}-initdb
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app: {{ .Chart.Name }}
-    service: {{ .Values.postgres.name }}
-data:
-  schema.sql: |
-    SET ROLE {{ .Values.postgres.username }};
-
-    CREATE TABLE IF NOT EXISTS site (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL UNIQUE,
-      base_url VARCHAR(255) NOT NULL,
-      path JSONB NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS scraper (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL UNIQUE,
-      site_id INT NOT NULL REFERENCES site(id) ON DELETE CASCADE,
-      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-    );
-
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'manga_status') THEN
-        CREATE TYPE manga_status AS ENUM ('ongoing', 'completed');
-      END IF;
-    END
-    $$;
-
-    CREATE TABLE IF NOT EXISTS manga (
-      id SERIAL PRIMARY KEY,
-      title VARCHAR(512) NOT NULL UNIQUE,
-      manga_id VARCHAR(512) NOT NULL UNIQUE,
-      first_chapter NUMERIC(5,1) NOT NULL,
-      last_chapter NUMERIC(5,1) NOT NULL,
-      current_chapter NUMERIC(5,1) NOT NULL,
-      status manga_status DEFAULT 'ongoing',
-      chapter_updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS source (
-      id SERIAL PRIMARY KEY,
-      manga_id INT NOT NULL REFERENCES manga(id) ON DELETE CASCADE,
-      scraper_id INT NOT NULL REFERENCES scraper(id) ON DELETE CASCADE,
-      url VARCHAR(512) NOT NULL,
-      priority INT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE (manga_id, scraper_id, priority)
-    );
-
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'job_status') THEN
-        CREATE TYPE job_status AS ENUM ('unknown', 'working', 'completed', 'error');
-      END IF;
-    END
-    $$;
-
-    CREATE TABLE IF NOT EXISTS job (
-      id SERIAL PRIMARY KEY,
-      manga_id INT NOT NULL REFERENCES manga(id) ON DELETE CASCADE,
-      scraper_id INT REFERENCES scraper(id) ON DELETE SET NULL,
-      status job_status DEFAULT 'unknown',
-      chapter NUMERIC(5,1) NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE (manga_id, chapter)
-    );
-
-    CREATE OR REPLACE FUNCTION update_updated_at_column()
-      RETURNS TRIGGER AS $$
-      BEGIN
-          NEW.updated_at = CURRENT_TIMESTAMP;
-          RETURN NEW;
-    END;
-    $$ language 'plpgsql';
-
-    CREATE OR REPLACE TRIGGER update_site_updated_at
-    BEFORE UPDATE ON site
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-    CREATE OR REPLACE TRIGGER update_scraper_updated_at
-    BEFORE UPDATE ON scraper
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-    CREATE OR REPLACE TRIGGER update_manga_updated_at
-    BEFORE UPDATE ON manga
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-    CREATE OR REPLACE TRIGGER update_source_updated_at
-    BEFORE UPDATE ON source
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-    CREATE OR REPLACE TRIGGER update_job_updated_at
-    BEFORE UPDATE ON job
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -184,19 +94,99 @@ spec:
     extensions:
       - name: pgvector
   {{- end }}
+  superuserSecret:
+    name: {{ .Values.postgres.name }}-postgres-user
+  managed:
+    roles:
+    - name: {{ .Values.postgres.users.app.username }}
+      ensure: present
+      login: true
+      superuser: false
+      passwordSecret:
+        name: {{ .Values.postgres.name }}-app-user
+      inRoles:
+        - pg_monitor
+        - pg_signal_backend
   bootstrap:
     initdb:
       database: {{ .Chart.Name }}
-      owner: {{ .Values.postgres.username }}
+      owner: {{ .Values.postgres.users.admin.username }}
       secret:
-        name: {{ .Values.postgres.name }}-creds
-      postInitApplicationSQLRefs:
-        configMapRefs:
-          - name: {{ .Values.postgres.name }}-initdb
-            key: schema.sql
+        name: {{ .Values.postgres.name }}-url
   storage:
     storageClass: {{ .Values.postgres.storage.className }}
     size: {{ .Values.postgres.storage.size }}
   walStorage:
     storageClass: {{ .Values.postgres.walStorage.className }}
     size: {{ .Values.postgres.walStorage.size }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: flyway-migrate-{{ now | unixEpoch }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    service: {{ .Values.postgres.name }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  template:
+    spec:
+      securityContext:
+        {{- include "mangalodon.podSecurityContext" | indent 8 }}
+      initContainers:
+        - name: file-writer
+          image: {{ .Values.postgres.flyway.dataImage.repository | default .Values.images.repository }}:{{ .Values.postgres.flyway.dataImage.tag }}
+          command: ["sh", "-c", "cp -r /opt/flyway /flyway"]
+          securityContext:
+            {{- include "mangalodon.containerSecurityContext" | indent 12 }}
+          volumeMounts:
+            - name: flyway-data
+              mountPath: /flyway
+      containers:
+        - name: flyway
+          image: flyway/flyway:{{ .Values.postgres.flyway.version }}-alpine
+          command: ["migrate"]
+          securityContext:
+            {{- include "mangalodon.containerSecurityContext" | indent 12 }}
+          env:
+            - name: FLYWAY_URL
+              value: jdbc:postgresql://{{ .Values.postgres.name }}-rw.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}
+            - name: FLYWAY_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.name }}-admin-user
+                  key: username
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.name }}-admin-user
+                  key: password
+            - name: FLYWAY_SCHEMAS
+              value: {{ .Values.postgres.schema }}
+            - name: FLYWAY_PLACEHOLDERS_SCHEMA
+              value: {{ .Values.postgres.schema }}
+            - name: FLYWAY_PLACEHOLDERS_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.name }}-admin-user
+                  key: username
+            - name: FLYWAY_PLACEHOLDERS_APP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.name }}-app-user
+                  key: username
+          volumeMounts:
+            - name: flyway-data
+              mountPath: /flyway
+          {{- with .Values.postgres.flyway.resources }}
+          resources:
+            {{- toYaml . | nindent 16 }}
+          {{- end }}
+      volumes:
+        - name: flyway-data
+          emptyDir: {}
+      restartPolicy: OnFailure
+  backoffLimit: 3

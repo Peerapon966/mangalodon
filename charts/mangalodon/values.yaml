@@ -73,9 +73,17 @@ scrapescheduler:
 
 postgres:
   name: postgres
-  username: app
-  vaultSecretPath: mangalodon/<env>/postgres/user
-  schema: public
+  users:
+    postgres:
+      username: postgres
+      vaultSecretPath: mangalodon/<env>/postgres/user/postgres
+    admin:
+      username: admin
+      vaultSecretPath: mangalodon/<env>/postgres/user/admin
+    app:
+      username: app
+      vaultSecretPath: mangalodon/<env>/postgres/user/app
+  schema: mangalodon
   version: 18
   replicas: 3
   extensions:
@@ -86,6 +94,18 @@ postgres:
   walStorage:
     className: local-path
     size: 1Gi
+  flyway:
+    version: 13.8
+    dataImage:
+      repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/flywaysql
+      tag: 0.0.1-alpha
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
 
 rabbitmq:
   name: rabbitmq

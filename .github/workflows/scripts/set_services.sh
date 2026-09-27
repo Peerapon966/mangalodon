@@ -28,8 +28,8 @@ services_template='[
     "versionRegex": "s/.*scrapeservice:.*tag:[[:space:]]*([^+]*)\\+.*/\\1/p"
   },
   {
-    "name": "scrapescheduler",
-    "path": "src/scrapescheduler",
+    "name": "postgres",
+    "path": "src/postgres",
     "versionFile": "charts/mangalodon/values.yaml",
     "versionRegex": "s/.*scrapescheduler:.*tag:[[:space:]]*([^+]*)\\+.*/\\1/p"
   }
@@ -40,11 +40,13 @@ services=$(echo "$services_template" | jq \
   --arg fe "$(yq eval '.frontend.image.tag' charts/mangalodon/values.yaml)" \
   --arg api "$(yq eval '.apiservice.image.tag' charts/mangalodon/values.yaml)" \
   --arg scr "$(yq eval '.scrapeservice.image.tag' charts/mangalodon/values.yaml)" \
-  --arg scr "$(yq eval '.scrapescheduler.image.tag' charts/mangalodon/values.yaml)" \
+  --arg sch "$(yq eval '.scrapescheduler.image.tag' charts/mangalodon/values.yaml)" \
+  --arg pg "$(yq eval '.postgres.flyway.dataImage.tag' charts/mangalodon/values.yaml)" \
   '(.[] | select(.name == "app")).version = $app |
   (.[] | select(.name == "frontend")).version = $fe |
   (.[] | select(.name == "apiservice")).version = $api |
   (.[] | select(.name == "scrapeservice")).version = $scr |
-  (.[] | select(.name == "scrapescheduler")).version = $scr')
+  (.[] | select(.name == "scrapescheduler")).version = $sch |
+  (.[] | select(.name == "postgres")).version = $pg')
 
 echo "services=$(echo $services | jq -c '.')" >> $GITHUB_OUTPUT

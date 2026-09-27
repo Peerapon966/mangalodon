@@ -34,41 +34,31 @@ spec:
       {{- end }}
       serviceAccountName: {{ .Values.apiservice.name }}
       securityContext:
-        fsGroup: 1000
-        runAsGroup: 1000
-        runAsNonRoot: true
-        runAsUser: 1000
-        seccompProfile:
-          type: RuntimeDefault
+        {{- include "mangalodon.podSecurityContext" | indent 8 }}
       containers:
         - name: {{ .Values.apiservice.name }}
           image: {{ .Values.apiservice.image.repository | default .Values.images.repository }}:{{ .Values.apiservice.image.tag }}
           ports:
             - containerPort: 3000
           securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            privileged: false
-            readOnlyRootFilesystem: true
+            {{- include "mangalodon.containerSecurityContext" | indent 12 }}
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.name }}-creds
-                  key: rwUrl
+                  name: {{ .Values.postgres.name }}-url
+                  key: rw
             {{- if gt (int .Values.postgres.replicas) 1 }}
             - name: READ_DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.name }}-creds
-                  key: roUrl
+                  name: {{ .Values.postgres.name }}-url
+                  key: ro
             {{- end }}
             - name: RABBITMQ_URL
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.rabbitmq.name }}-creds
+                  name: {{ .Values.rabbitmq.name }}-url
                   key: host
             - name: RABBITMQ_QUEUE
               value: {{ .Values.rabbitmq.queue.name }}
