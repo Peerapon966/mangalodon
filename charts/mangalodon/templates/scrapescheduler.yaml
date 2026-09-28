@@ -23,12 +23,12 @@ spec:
         spec:
           serviceAccountName: {{ .Values.scrapescheduler.name }}
           securityContext:
-            {{- include "mangalodon.podSecurityContext" | indent 12 }}
+            {{- include "mangalodon.podSecurityContext" . | nindent 12 }}
           containers:
             - name: {{ .Values.scrapescheduler.name }}
               image: {{ .Values.scrapescheduler.image.repository | default .Values.images.repository }}:{{ .Values.scrapescheduler.image.tag }}
               securityContext:
-                {{- include "mangalodon.containerSecurityContext" | indent 16 }}
+                {{- include "mangalodon.containerSecurityContext" . | nindent 16 }}
               env:
                 - name: DATABASE_URL
                   valueFrom:

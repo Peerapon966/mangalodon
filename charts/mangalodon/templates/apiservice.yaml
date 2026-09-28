@@ -34,14 +34,14 @@ spec:
       {{- end }}
       serviceAccountName: {{ .Values.apiservice.name }}
       securityContext:
-        {{- include "mangalodon.podSecurityContext" | indent 8 }}
+        {{- include "mangalodon.podSecurityContext" . | nindent 8 }}
       containers:
         - name: {{ .Values.apiservice.name }}
           image: {{ .Values.apiservice.image.repository | default .Values.images.repository }}:{{ .Values.apiservice.image.tag }}
           ports:
             - containerPort: 3000
           securityContext:
-            {{- include "mangalodon.containerSecurityContext" | indent 12 }}
+            {{- include "mangalodon.containerSecurityContext" . | nindent 12 }}
           env:
             - name: DATABASE_URL
               valueFrom:

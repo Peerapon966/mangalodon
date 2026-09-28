@@ -22,6 +22,10 @@ build:
       context: src/scrapescheduler
       docker:
         dockerfile: Dockerfile
+    - image: heftychonk/mangalodon-flywaydata
+      context: src/postgres
+      docker:
+        dockerfile: Dockerfile
 deploy:
   helm:
     releases:
@@ -48,6 +52,8 @@ deploy:
           scrapescheduler.schedule: "0-59/3 * * * *"
 
           postgres.replicas: 1
+          postgres.flyway.dataImage.repository: "{{.IMAGE_REPO_heftychonk_mangalodon_flywaydata}}"
+          postgres.flyway.dataImage.tag: "{{.IMAGE_TAG_heftychonk_mangalodon_flywaydata}}"
 
           rabbitmq.replicas: 1
 

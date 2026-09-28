@@ -25,12 +25,12 @@ spec:
       spec:
         serviceAccountName: {{ .Values.scrapeservice.name }}
         securityContext:
-          {{- include "mangalodon.podSecurityContext" | indent 10 }}
+          {{- include "mangalodon.podSecurityContext" . | nindent 10 }}
         containers:
           - name: {{ .Values.scrapeservice.name }}
             image: {{ .Values.scrapeservice.image.repository | default .Values.images.repository }}:{{ .Values.scrapeservice.image.tag }}
             securityContext:
-              {{- include "mangalodon.containerSecurityContext" | indent 14 }}
+              {{- include "mangalodon.containerSecurityContext" . | nindent 14 }}
             env:
               - name: RABBITMQ_URL
                 valueFrom:

@@ -68,14 +68,14 @@ spec:
       {{- end }}
       serviceAccountName: {{ .Values.frontend.name }}
       securityContext:
-        {{- include "mangalodon.podSecurityContext" | indent 8 }}
+        {{- include "mangalodon.podSecurityContext" . | nindent 8 }}
       containers:
         - name: {{ .Values.frontend.name }}
           image: {{ .Values.frontend.image.repository | default .Values.images.repository }}:{{ .Values.frontend.image.tag }}
           ports:
             - containerPort: 8080
           securityContext:
-            {{- include "mangalodon.containerSecurityContext" | indent 12 }}
+            {{- include "mangalodon.containerSecurityContext" . | nindent 12 }}
           readinessProbe:
             initialDelaySeconds: 10
             httpGet:

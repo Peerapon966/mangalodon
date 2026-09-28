@@ -27,19 +27,19 @@ spec:
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: {{ .Values.postgres.name }}-{{ $key }}-user
-  namespace: {{ .Release.Namespace }}
+  name: {{ $.Values.postgres.name }}-{{ $key }}-user
+  namespace: {{ $.Release.Namespace }}
   labels:
-    app: {{ .Chart.Name }}
-    service: {{ .Values.postgres.name }}
+    app: {{ $.Chart.Name }}
+    service: {{ $.Values.postgres.name }}
 spec:
-  vaultAuthRef: {{ .Values.postgres.name }}
-  mount: {{ .Values.vault.kvEngine.mountPath }}
-  type: kv-{{ .Values.vault.kvEngine.version }}
-  path: {{ replace "<env>" .Values.env $value.vaultSecretPath }}
+  vaultAuthRef: {{ $.Values.postgres.name }}
+  mount: {{ $.Values.vault.kvEngine.mountPath }}
+  type: kv-{{ $.Values.vault.kvEngine.version }}
+  path: {{ replace "<env>" $.Values.env $value.vaultSecretPath }}
   refreshAfter: 10m
   destination:
-    name: {{ .Values.postgres.name }}-{{ $key }}-user
+    name: {{ $.Values.postgres.name }}-{{ $key }}-user
     labels:
       cnpg.io/reload: "true"
     create: true
@@ -129,28 +129,28 @@ metadata:
     app: {{ .Chart.Name }}
     service: {{ .Values.postgres.name }}
   annotations:
-    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook: post-install,pre-upgrade
     helm.sh/hook-delete-policy: before-hook-creation
 spec:
   template:
     spec:
       securityContext:
-        {{- include "mangalodon.podSecurityContext" | indent 8 }}
+        {{- include "mangalodon.podSecurityContext" . | nindent 8 }}
       initContainers:
-        - name: file-writer
+        - name: flyway-data
           image: {{ .Values.postgres.flyway.dataImage.repository | default .Values.images.repository }}:{{ .Values.postgres.flyway.dataImage.tag }}
-          command: ["sh", "-c", "cp -r /opt/flyway /flyway"]
+          command: ["sh", "-c", "cp -r /opt/flyway /flyway && sleep 60"]
           securityContext:
-            {{- include "mangalodon.containerSecurityContext" | indent 12 }}
+            {{- include "mangalodon.containerSecurityContext" . | nindent 12 }}
           volumeMounts:
             - name: flyway-data
               mountPath: /flyway
       containers:
         - name: flyway
           image: flyway/flyway:{{ .Values.postgres.flyway.version }}-alpine
-          command: ["migrate"]
+          args: ["migrate"]
           securityContext:
-            {{- include "mangalodon.containerSecurityContext" | indent 12 }}
+            {{- include "mangalodon.containerSecurityContext" . | nindent 12 }}
           env:
             - name: FLYWAY_URL
               value: jdbc:postgresql://{{ .Values.postgres.name }}-rw.{{ .Release.Namespace }}.svc:5432/{{ .Chart.Name }}
@@ -180,7 +180,7 @@ spec:
                   key: username
           volumeMounts:
             - name: flyway-data
-              mountPath: /flyway
+              mountPath: /flyway/sql
           {{- with .Values.postgres.flyway.resources }}
           resources:
             {{- toYaml . | nindent 16 }}

@@ -97,7 +97,7 @@ postgres:
   flyway:
     version: 13.8
     dataImage:
-      repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/flywaysql
+      repository: 741448960615.dkr.ecr.ap-southeast-1.amazonaws.com/mangalodon/flywaydata
       tag: 0.0.1-alpha
     resources:
       requests:
